@@ -1,0 +1,823 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pastel Golf</title>
+  <style>
+    :root{
+      --bg1: #edf3f9;
+      --bg2: #f5f7fb;
+      --panel: rgba(255,255,255,0.58);
+      --panel-strong: rgba(255,255,255,0.8);
+      --text: #2e3a3d;
+      --fairway: #3a8f5f;
+      --fairway-dark: #2d734a;
+      --bunker: #e8d7b8;
+      --water: #bfe9ff;
+      --flag: #ff6b6b;
+      --shadow: rgba(50,60,70,0.08);
+      --line: rgba(42,55,62,0.2);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(180deg, var(--bg1), var(--bg2));
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+      color: var(--text);
+    }
+
+    .wrapper {
+      width: 100%;
+      max-width: 900px;
+      padding: 14px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .stage {
+      position: relative;
+      width: 800px;
+      max-width: 100%;
+      aspect-ratio: 4 / 3;
+      box-shadow: 0 14px 30px var(--shadow);
+      border-radius: 14px;
+      background: rgba(255,255,255,0.4);
+      overflow: hidden;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      background: transparent;
+      cursor: crosshair;
+      touch-action: none;
+      user-select: none;
+      border-radius: 14px;
+    }
+
+    .hud {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      background: rgba(255,255,255,0.48);
+      backdrop-filter: blur(7px);
+      border: 1px solid rgba(255,255,255,0.6);
+      border-radius: 12px;
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 6px 18px rgba(35,45,57,0.06);
+    }
+
+    .hud .meta {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.2;
+      font-size: 13px;
+    }
+
+    .hud .meta strong {
+      font-size: 15px;
+      letter-spacing: 0.2px;
+    }
+
+    .hud button {
+      background: var(--panel-strong);
+      border: 1px solid rgba(0,0,0,0.05);
+      border-radius: 9px;
+      padding: 7px 10px;
+      font-weight: 700;
+      cursor: pointer;
+      color: var(--text);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    }
+
+    .hud button:active {
+      transform: translateY(1px);
+    }
+
+    .win-overlay {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      min-width: 260px;
+      background: rgba(255,255,255,0.9);
+      border: 1px solid rgba(0,0,0,0.06);
+      border-radius: 14px;
+      box-shadow: 0 18px 40px rgba(25,35,48,0.12);
+      padding: 18px 20px;
+      display: none;
+      text-align: center;
+      z-index: 10;
+    }
+
+    .win-overlay h2 {
+      margin: 0 0 8px 0;
+      font-size: 1.4rem;
+    }
+
+    .win-overlay p {
+      margin: 0;
+      font-size: 0.96rem;
+      color: rgba(46,58,61,0.82);
+    }
+
+    .win-overlay .actions {
+      margin-top: 14px;
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .win-overlay button {
+      background: rgba(255,255,255,0.9);
+      border: 1px solid rgba(0,0,0,0.05);
+      border-radius: 9px;
+      padding: 8px 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    @media (max-width: 620px) {
+      .hud {
+        padding: 8px 9px;
+        gap: 8px;
+      }
+      .hud .meta {
+        font-size: 11px;
+      }
+      .hud .meta strong {
+        font-size: 13px;
+      }
+      .hud button {
+        padding: 6px 8px;
+        font-size: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="stage">
+      <canvas id="gameCanvas" width="800" height="600"></canvas>
+
+      <div class="hud">
+        <div class="meta">
+          <strong id="levelName">Level 1</strong>
+          <span>Strokes: <b id="strokeCount">0</b> | Par: <b id="parValue">3</b></span>
+        </div>
+        <button id="resetBtn" type="button">Reset Level</button>
+      </div>
+
+      <div class="win-overlay" id="winOverlay">
+        <h2 id="winTitle">Hole in one!</h2>
+        <p id="winDetail">Strokes: 3 | Par: 3</p>
+        <div class="actions">
+          <button id="nextBtn" type="button">Next Level</button>
+          <button id="replayBtn" type="button">Replay</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    const levelNameEl = document.getElementById("levelName");
+    const strokeCountEl = document.getElementById("strokeCount");
+    const parValueEl = document.getElementById("parValue");
+    const resetBtn = document.getElementById("resetBtn");
+    const nextBtn = document.getElementById("nextBtn");
+    const replayBtn = document.getElementById("replayBtn");
+    const winOverlay = document.getElementById("winOverlay");
+    const winTitle = document.getElementById("winTitle");
+    const winDetail = document.getElementById("winDetail");
+
+    class Vec {
+      constructor(x = 0, y = 0) {
+        this.x = x;
+        this.y = y;
+      }
+      clone() { return new Vec(this.x, this.y); }
+      add(v) { return new Vec(this.x + v.x, this.y + v.y); }
+      sub(v) { return new Vec(this.x - v.x, this.y - v.y); }
+      mul(s) { return new Vec(this.x * s, this.y * s); }
+      div(s) { return new Vec(this.x / s, this.y / s); }
+      len() { return Math.hypot(this.x, this.y); }
+      normalize() {
+        const length = this.len();
+        if (length === 0) return new Vec(0, 0);
+        return this.div(length);
+      }
+    }
+
+    class Ball {
+      constructor(pos, radius = 8) {
+        this.pos = pos.clone();
+        this.radius = radius;
+        this.vel = new Vec(0, 0);
+        this.lastHitPos = pos.clone();
+        this.inHole = false;
+      }
+
+      resetTo(pos) {
+        this.pos = pos.clone();
+        this.vel = new Vec(0, 0);
+        this.inHole = false;
+      }
+
+      isMoving() {
+        return this.vel.len() > 4;
+      }
+
+      draw() {
+        ctx.save();
+        ctx.fillStyle = "rgba(16,18,20,0.12)";
+        ctx.beginPath();
+        ctx.ellipse(this.pos.x + 3, this.pos.y + 6, this.radius + 3, this.radius + 2.5, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.arc(this.pos.x, this.pos.y, this.radius, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = "rgba(0,0,0,0.12)";
+        ctx.stroke();
+      }
+    }
+
+    class Hole {
+      constructor(x, y, radius = 16) {
+        this.x = x;
+        this.y = y;
+        this.radius = radius;
+      }
+
+      draw() {
+        ctx.save();
+        ctx.fillStyle = "#1f2d31";
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius + 5, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "#dff5d9";
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = "#0d1d23";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(this.x + 20, this.y - 18);
+        ctx.lineTo(this.x + 20, this.y - 52);
+        ctx.stroke();
+
+        ctx.fillStyle = "#ff6b6b";
+        ctx.beginPath();
+        ctx.moveTo(this.x + 20, this.y - 52);
+        ctx.lineTo(this.x + 46, this.y - 38);
+        ctx.lineTo(this.x + 20, this.y - 26);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
+
+      checkBall(ball) {
+        const dx = ball.pos.x - this.x;
+        const dy = ball.pos.y - this.y;
+        const dist = Math.hypot(dx, dy);
+        return dist <= this.radius + ball.radius + 1 && ball.vel.len() < 20;
+      }
+    }
+
+    class Obstacle {
+      constructor(type, x, y, w, h, options = {}) {
+        this.type = type;
+        this.x = x;
+        this.y = y;
+        this.w = w;
+        this.h = h;
+        this.options = options;
+        this.baseX = x;
+        this.baseY = y;
+        this.phase = Math.random() * Math.PI * 2;
+      }
+
+      update(dt) {
+        if (this.type !== "moving") return;
+
+        const { rangeX = 0, rangeY = 0, speed = 1.2 } = this.options;
+        const t = performance.now() * 0.001 * speed + this.phase;
+        this.x = this.baseX + Math.sin(t) * rangeX;
+        this.y = this.baseY + Math.cos(t * 1.3) * rangeY;
+      }
+
+      containsPoint(point) {
+        return (
+          point.x >= this.x &&
+          point.x <= this.x + this.w &&
+          point.y >= this.y &&
+          point.y <= this.y + this.h
+        );
+      }
+
+      draw() {
+        switch (this.type) {
+          case "wall":
+            ctx.fillStyle = "#567d74";
+            ctx.fillRect(this.x, this.y, this.w, this.h);
+            break;
+
+          case "bunker":
+            ctx.fillStyle = "#ead8b9";
+            ctx.fillRect(this.x, this.y, this.w, this.h);
+
+            ctx.strokeStyle = "rgba(145,117,73,0.3)";
+            ctx.lineWidth = 1.2;
+            for (let i = 0; i < 5; i++) {
+              ctx.beginPath();
+              ctx.moveTo(this.x + i * (this.w / 5), this.y);
+              ctx.lineTo(this.x + i * (this.w / 5) + 12, this.y + this.h);
+              ctx.stroke();
+            }
+            break;
+
+          case "water":
+            ctx.fillStyle = "#bfe9ff";
+            ctx.fillRect(this.x, this.y, this.w, this.h);
+
+            ctx.strokeStyle = "rgba(94,139,178,0.4)";
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            for (let x = this.x; x < this.x + this.w; x += 14) {
+              ctx.moveTo(x, this.y + 2);
+              ctx.quadraticCurveTo(x + 6, this.y + this.h * 0.5, x + 12, this.y + this.h - 2);
+            }
+            ctx.stroke();
+            break;
+
+          case "moving":
+            ctx.fillStyle = "#9ea3ff";
+            ctx.fillRect(this.x, this.y, this.w, this.h);
+
+            ctx.strokeStyle = "rgba(60,65,120,0.6)";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(this.x, this.y, this.w, this.h);
+            break;
+        }
+      }
+    }
+
+    class Level {
+      constructor(config) {
+        this.name = config.name;
+        this.par = config.par;
+        this.start = new Vec(config.start.x, config.start.y);
+        this.hole = new Hole(config.hole.x, config.hole.y, config.hole.radius || 16);
+        this.obstacles = config.obstacles.map(o => new Obstacle(o.type, o.x, o.y, o.w, o.h, o.options || {}));
+        this.baseFriction = config.baseFriction || 180;
+        this.bunkerFriction = config.bunkerFriction || 420;
+      }
+
+      drawBackground() {
+        ctx.fillStyle = "#edf7ed";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = "#3a8f5f";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // subtle fairway texture
+        ctx.strokeStyle = "rgba(255,255,255,0.08)";
+        ctx.lineWidth = 1;
+        for (let i = 0; i < canvas.width; i += 28) {
+          ctx.beginPath();
+          ctx.moveTo(i, 0);
+          ctx.lineTo(i + 12, canvas.height);
+          ctx.stroke();
+        }
+
+        ctx.fillStyle = "rgba(18, 39, 24, 0.12)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+
+      update(dt) {
+        for (const obstacle of this.obstacles) obstacle.update(dt);
+      }
+
+      draw() {
+        for (const obstacle of this.obstacles) obstacle.draw();
+        this.hole.draw();
+      }
+    }
+
+    class LevelManager {
+      constructor() {
+        this.levels = [
+          new Level({
+            name: "Level 1",
+            par: 3,
+            start: { x: 90, y: 500 },
+            hole: { x: 700, y: 115 },
+            baseFriction: 195,
+            bunkerFriction: 460,
+            obstacles: [
+              { type: "wall", x: 300, y: 80, w: 26, h: 270 },
+              { type: "wall", x: 490, y: 330, w: 26, h: 180 },
+              { type: "bunker", x: 600, y: 90, w: 125, h: 70 }
+            ]
+          }),
+          new Level({
+            name: "Level 2",
+            par: 4,
+            start: { x: 90, y: 500 },
+            hole: { x: 700, y: 120 },
+            baseFriction: 185,
+            bunkerFriction: 500,
+            obstacles: [
+              { type: "wall", x: 185, y: 430, w: 18, h: 120 },
+              { type: "wall", x: 185, y: 430, w: 320, h: 18 },
+              { type: "wall", x: 470, y: 150, w: 18, h: 300 },
+              { type: "wall", x: 500, y: 150, w: 200, h: 18 },
+              { type: "bunker", x: 260, y: 300, w: 150, h: 90 },
+              { type: "bunker", x: 545, y: 230, w: 120, h: 100 }
+            ]
+          }),
+          new Level({
+            name: "Level 3",
+            par: 5,
+            start: { x: 85, y: 520 },
+            hole: { x: 710, y: 120 },
+            baseFriction: 200,
+            bunkerFriction: 540,
+            obstacles: [
+              { type: "wall", x: 100, y: 100, w: 18, h: 400 },
+              { type: "wall", x: 100, y: 500, w: 460, h: 18 },
+              { type: "wall", x: 355, y: 80, w: 18, h: 330 },
+              { type: "wall", x: 500, y: 100, w: 18, h: 360 },
+              { type: "wall", x: 500, y: 455, w: 230, h: 18 },
+              { type: "water", x: 220, y: 220, w: 120, h: 100 },
+              { type: "water", x: 560, y: 175, w: 110, h: 110 },
+              { type: "bunker", x: 550, y: 300, w: 120, h: 96 },
+              { type: "moving", x: 280, y: 280, w: 34, h: 34, options: { rangeX: 100, rangeY: 0, speed: 1.2 } }
+            ]
+          })
+        ];
+        this.index = 0;
+      }
+
+      current() {
+        return this.levels[this.index];
+      }
+
+      next() {
+        this.index = (this.index + 1) % this.levels.length;
+      }
+
+      resetIndex() {
+        this.index = 0;
+      }
+    }
+
+    class Game {
+      constructor() {
+        this.levelManager = new LevelManager();
+        this.level = this.levelManager.current();
+        this.ball = new Ball(this.level.start.clone());
+        this.strokeCount = 0;
+        this.dragging = false;
+        this.dragPoint = null;
+        this.won = false;
+        this.over = false;
+
+        this.bindEvents();
+        this.updateHud();
+      }
+
+      bindEvents() {
+        resetBtn.addEventListener("click", () => this.resetCurrentLevel());
+        replayBtn.addEventListener("click", () => this.resetCurrentLevel());
+
+        nextBtn.addEventListener("click", () => {
+          this.levelManager.next();
+          this.loadLevel(this.levelManager.index);
+        });
+
+        canvas.addEventListener("pointerdown", (event) => {
+          if (this.over || this.won) return;
+          if (this.ball.isMoving()) return;
+
+          const pos = this.getPointer(event);
+          this.dragging = true;
+          this.dragPoint = pos;
+        });
+
+        canvas.addEventListener("pointermove", (event) => {
+          if (!this.dragging) return;
+          this.dragPoint = this.getPointer(event);
+        });
+
+        canvas.addEventListener("pointerup", () => {
+          if (!this.dragging) return;
+          if (!this.ball.isMoving()) {
+            this.launchBallFromDrag();
+          }
+          this.dragging = false;
+          this.dragPoint = null;
+        });
+
+        canvas.addEventListener("pointerleave", () => {
+          if (this.dragging) {
+            this.dragging = false;
+            this.dragPoint = null;
+          }
+        });
+
+        window.addEventListener("keydown", (event) => {
+          if (event.key.toLowerCase() === "r") this.resetCurrentLevel();
+        });
+      }
+
+      getPointer(event) {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        return {
+          x: (event.clientX - rect.left) * scaleX,
+          y: (event.clientY - rect.top) * scaleY
+        };
+      }
+
+      updateHud() {
+        levelNameEl.textContent = this.level.name;
+        strokeCountEl.textContent = this.strokeCount;
+        parValueEl.textContent = this.level.par;
+      }
+
+      loadLevel(index) {
+        this.levelManager.index = index;
+        this.level = this.levelManager.current();
+        this.ball = new Ball(this.level.start.clone());
+        this.strokeCount = 0;
+        this.dragging = false;
+        this.dragPoint = null;
+        this.won = false;
+        this.over = false;
+        winOverlay.style.display = "none";
+        this.updateHud();
+      }
+
+      resetCurrentLevel() {
+        this.ball = new Ball(this.level.start.clone());
+        this.strokeCount = 0;
+        this.dragging = false;
+        this.dragPoint = null;
+        this.won = false;
+        this.over = false;
+        winOverlay.style.display = "none";
+        this.updateHud();
+      }
+
+      launchBallFromDrag() {
+        if (!this.dragPoint) return;
+        const dx = this.ball.pos.x - this.dragPoint.x;
+        const dy = this.ball.pos.y - this.dragPoint.y;
+        const distance = Math.hypot(dx, dy);
+
+        if (distance < 6) return;
+
+        const maxShot = 690;
+        const strength = Math.min(maxShot, distance * 0.45);
+
+        const dirX = dx / distance;
+        const dirY = dy / distance;
+
+        this.ball.vel = new Vec(dirX * strength, dirY * strength);
+        this.ball.lastHitPos = this.ball.pos.clone();
+        this.strokeCount += 1;
+        this.updateHud();
+      }
+
+      handleBoundsCollision() {
+        const pad = this.ball.radius;
+        const maxX = canvas.width - pad;
+        const maxY = canvas.height - pad;
+
+        if (this.ball.pos.x < pad) {
+          this.ball.pos.x = pad;
+          this.ball.vel.x = Math.abs(this.ball.vel.x);
+        }
+        if (this.ball.pos.x > maxX) {
+          this.ball.pos.x = maxX;
+          this.ball.vel.x = -Math.abs(this.ball.vel.x);
+        }
+        if (this.ball.pos.y < pad) {
+          this.ball.pos.y = pad;
+          this.ball.vel.y = Math.abs(this.ball.vel.y);
+        }
+        if (this.ball.pos.y > maxY) {
+          this.ball.pos.y = maxY;
+          this.ball.vel.y = -Math.abs(this.ball.vel.y);
+        }
+      }
+
+      resolveCircleRectCollision(ball, rect) {
+        const nearestX = Math.min(Math.max(ball.pos.x, rect.x), rect.x + rect.w);
+        const nearestY = Math.min(Math.max(ball.pos.y, rect.y), rect.y + rect.h);
+        const dx = ball.pos.x - nearestX;
+        const dy = ball.pos.y - nearestY;
+        const distSq = dx * dx + dy * dy;
+        const radius = ball.radius;
+
+        if (distSq < radius * radius) {
+          const dist = Math.sqrt(distSq) || 0.0001;
+          const nx = dx / dist;
+          const ny = dy / dist;
+          const overlap = radius - dist;
+
+          ball.pos.x += nx * (overlap + 0.5);
+          ball.pos.y += ny * (overlap + 0.5);
+
+          const vn = ball.vel.x * nx + ball.vel.y * ny;
+          if (vn < 0) {
+            ball.vel.x -= 2 * vn * nx;
+            ball.vel.y -= 2 * vn * ny;
+          }
+
+          return true;
+        }
+        return false;
+      }
+
+      handleObstacleCollisions() {
+        for (const obstacle of this.level.obstacles) {
+          if (obstacle.type === "water") {
+            if (this.resolveCircleRectCollision(this.ball, obstacle)) {
+              // same collision used only for solid boundary fallback, but water is hazard not wall
+            }
+            if (obstacle.containsPoint(this.ball.pos)) {
+              this.ball.resetTo(this.ball.lastHitPos);
+              this.strokeCount += 1;
+              this.updateHud();
+              return;
+            }
+            continue;
+          }
+
+          if (obstacle.type === "bunker" || obstacle.type === "wall" || obstacle.type === "moving") {
+            const hit = this.resolveCircleRectCollision(this.ball, obstacle);
+            if (hit) {
+              // small push correction for very sharp collisions
+              if (this.ball.vel.len() < 120) {
+                this.ball.vel = this.ball.vel.mul(0.92);
+              }
+            }
+          }
+        }
+      }
+
+      updateBall(dt) {
+        if (this.ball.inHole) return;
+
+        let friction = this.level.baseFriction;
+
+        for (const obstacle of this.level.obstacles) {
+          if (obstacle.type === "bunker" && obstacle.containsPoint(this.ball.pos)) {
+            friction = this.level.bunkerFriction;
+            break;
+          }
+        }
+
+        const speed = this.ball.vel.len();
+        if (speed > 0) {
+          const decel = friction * dt;
+          const newSpeed = Math.max(0, speed - decel);
+          if (newSpeed === 0) {
+            this.ball.vel = new Vec(0, 0);
+          } else {
+            this.ball.vel = this.ball.vel.mul(newSpeed / speed);
+          }
+        }
+
+        this.ball.pos = this.ball.pos.add(this.ball.vel.mul(dt));
+
+        this.handleBoundsCollision();
+        this.handleObstacleCollisions();
+
+        const waterHazard = this.level.obstacles.find(o => o.type === "water" && o.containsPoint(this.ball.pos));
+        if (waterHazard) {
+          this.ball.resetTo(this.ball.lastHitPos);
+          this.strokeCount += 1;
+          this.updateHud();
+        }
+
+        if (this.level.hole.checkBall(this.ball)) {
+          this.ball.inHole = true;
+          this.won = true;
+          this.over = true;
+          this.showWin();
+        }
+      }
+
+      showWin() {
+        const diff = this.strokeCount - this.level.par;
+        let phrase = "Nice round!";
+        if (this.strokeCount === this.level.par) phrase = "Par!";
+        else if (this.strokeCount === this.level.par - 1) phrase = "Birdie!";
+        else if (this.strokeCount === this.level.par - 2) phrase = "Eagle!";
+        else if (this.strokeCount > this.level.par) phrase = "Solid finish!";
+
+        winTitle.textContent = phrase;
+        winDetail.textContent = "Strokes: " + this.strokeCount + " | Par: " + this.level.par + (diff < 0 ? " (" + diff + ")" : " (+" + Math.abs(diff) + ")");
+        winOverlay.style.display = "block";
+
+        const isLastLevel = this.levelManager.index >= this.levelManager.levels.length - 1;
+        nextBtn.style.display = isLastLevel ? "none" : "inline-block";
+      }
+
+      drawAimGuide() {
+        if (!this.dragging || this.ball.isMoving() || this.won) return;
+        if (!this.dragPoint) return;
+
+        const fromX = this.ball.pos.x;
+        const fromY = this.ball.pos.y;
+        const toX = this.dragPoint.x;
+        const toY = this.dragPoint.y;
+
+        ctx.save();
+        ctx.setLineDash([8, 10]);
+        ctx.strokeStyle = "rgba(35, 94, 160, 0.85)";
+        ctx.lineWidth = 2.4;
+        ctx.beginPath();
+        ctx.moveTo(fromX, fromY);
+        ctx.lineTo(toX, toY);
+        ctx.stroke();
+
+        const dx = toX - fromX;
+        const dy = toY - fromY;
+        const dist = Math.hypot(dx, dy);
+        const maxLine = Math.min(220, dist);
+
+        const lx = fromX + (dx / (dist || 1)) * maxLine;
+        const ly = fromY + (dy / (dist || 1)) * maxLine;
+
+        ctx.setLineDash([]);
+        ctx.fillStyle = "rgba(35, 94, 160, 0.85)";
+        ctx.beginPath();
+        ctx.arc(toX, toY, 4, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = "rgba(35, 94, 160, 0.8)";
+        ctx.beginPath();
+        ctx.moveTo(fromX, fromY);
+        ctx.lineTo(lx, ly);
+        ctx.stroke();
+
+        ctx.restore();
+      }
+
+      draw() {
+        this.level.drawBackground();
+        this.level.draw();
+        this.drawAimGuide();
+        this.ball.draw();
+      }
+
+      update(dt) {
+        if (!this.over) {
+          this.level.update(dt);
+          this.updateBall(dt);
+        }
+      }
+    }
+
+    const game = new Game();
+
+    let lastTime = performance.now();
+    function frame(now) {
+      const dt = Math.min((now - lastTime) / 1000, 0.033);
+      lastTime = now;
+      game.update(dt);
+      game.draw();
+      requestAnimationFrame(frame);
+    }
+
+    requestAnimationFrame(frame);
+  </script>
+</body>
+</html>
