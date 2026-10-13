@@ -2,822 +2,762 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Pastel Golf</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Minimalist Pastel Golf</title>
   <style>
     :root{
-      --bg1: #edf3f9;
-      --bg2: #f5f7fb;
-      --panel: rgba(255,255,255,0.58);
-      --panel-strong: rgba(255,255,255,0.8);
-      --text: #2e3a3d;
-      --fairway: #3a8f5f;
-      --fairway-dark: #2d734a;
-      --bunker: #e8d7b8;
-      --water: #bfe9ff;
-      --flag: #ff6b6b;
-      --shadow: rgba(50,60,70,0.08);
-      --line: rgba(42,55,62,0.2);
+      --bg:#f4f7fb;
+      --panel: rgba(255,255,255,0.6);
+      --text:#2d3940;
+      --fairway:#2f8b53;    /* deep green */
+      --bunker:#e9d8b5;     /* sandy beige */
+      --water:#cdeeff;      /* light blue */
+      --flag:#ff5e7a;       /* bright flag color */
+      --hud-shadow: rgba(20,30,40,0.08);
     }
 
-    * { box-sizing: border-box; }
-
-    html, body {
-      margin: 0;
-      width: 100%;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: linear-gradient(180deg, var(--bg1), var(--bg2));
-      font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
-      color: var(--text);
+    *{box-sizing:border-box}
+    html,body{
+      height:100%;
+      margin:0;
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      background: linear-gradient(180deg,#eef4fb,#f8fbff);
+      color:var(--text);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:14px;
     }
 
-    .wrapper {
-      width: 100%;
-      max-width: 900px;
-      padding: 14px;
-      display: flex;
-      justify-content: center;
+    .container{
+      width:100%;
+      max-width:920px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      align-items:center;
     }
 
-    .stage {
-      position: relative;
-      width: 800px;
-      max-width: 100%;
-      aspect-ratio: 4 / 3;
-      box-shadow: 0 14px 30px var(--shadow);
-      border-radius: 14px;
-      background: rgba(255,255,255,0.4);
-      overflow: hidden;
+    /* Stage box keeps aspect (800x600) and centers canvas */
+    .stage{
+      position:relative;
+      width:800px;
+      max-width:100%;
+      aspect-ratio: 4/3;
+      border-radius:12px;
+      padding:10px;
+      background:var(--panel);
+      box-shadow: 0 14px 40px var(--hud-shadow);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      overflow:hidden;
     }
 
-    canvas {
-      width: 100%;
-      height: 100%;
-      display: block;
-      background: transparent;
-      cursor: crosshair;
-      touch-action: none;
-      user-select: none;
-      border-radius: 14px;
+    canvas{
+      width:100%;
+      height:100%;
+      border-radius:8px;
+      display:block;
+      background:transparent;
+      cursor:crosshair;
+      touch-action:none;
+      -webkit-user-select:none;
+      user-select:none;
     }
 
-    .hud {
-      position: absolute;
-      top: 16px;
-      left: 16px;
-      background: rgba(255,255,255,0.48);
-      backdrop-filter: blur(7px);
-      border: 1px solid rgba(255,255,255,0.6);
-      border-radius: 12px;
-      padding: 10px 12px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      box-shadow: 0 6px 18px rgba(35,45,57,0.06);
+    /* HUD overlay */
+    .hud{
+      position:absolute;
+      left:18px;
+      top:18px;
+      display:flex;
+      gap:12px;
+      align-items:center;
+      background: rgba(255,255,255,0.58);
+      backdrop-filter: blur(6px);
+      padding:8px 12px;
+      border-radius:10px;
+      box-shadow: 0 8px 20px rgba(20,30,40,0.06);
+      z-index:10;
+    }
+    .hud .meta{ font-size:14px; line-height:1; }
+    .hud .meta strong{ display:block; font-size:15px; }
+    .hud .controls button{
+      background:white;
+      border:1px solid rgba(0,0,0,0.06);
+      padding:6px 10px;
+      border-radius:8px;
+      cursor:pointer;
+      font-weight:700;
     }
 
-    .hud .meta {
-      display: flex;
-      flex-direction: column;
-      line-height: 1.2;
-      font-size: 13px;
+    .win{
+      position:absolute;
+      left:50%;
+      top:50%;
+      transform:translate(-50%,-50%);
+      background:white;
+      padding:16px 18px;
+      border-radius:10px;
+      box-shadow: 0 18px 40px rgba(20,30,40,0.12);
+      display:none;
+      z-index:20;
+      text-align:center;
+      min-width:240px;
     }
+    .win h3{ margin:0 0 6px 0; }
+    .win p{ margin:0; color:#56616a; }
+    .win .row{ margin-top:12px; display:flex; gap:8px; justify-content:center; }
+    .win button{ padding:8px 12px; border-radius:8px; border:1px solid rgba(0,0,0,0.06); cursor:pointer; background:var(--panel); font-weight:700; }
 
-    .hud .meta strong {
-      font-size: 15px;
-      letter-spacing: 0.2px;
-    }
-
-    .hud button {
-      background: var(--panel-strong);
-      border: 1px solid rgba(0,0,0,0.05);
-      border-radius: 9px;
-      padding: 7px 10px;
-      font-weight: 700;
-      cursor: pointer;
-      color: var(--text);
-      box-shadow: 0 2px 8px rgba(0,0,0,0.03);
-    }
-
-    .hud button:active {
-      transform: translateY(1px);
-    }
-
-    .win-overlay {
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      transform: translate(-50%, -50%);
-      min-width: 260px;
-      background: rgba(255,255,255,0.9);
-      border: 1px solid rgba(0,0,0,0.06);
-      border-radius: 14px;
-      box-shadow: 0 18px 40px rgba(25,35,48,0.12);
-      padding: 18px 20px;
-      display: none;
-      text-align: center;
-      z-index: 10;
-    }
-
-    .win-overlay h2 {
-      margin: 0 0 8px 0;
-      font-size: 1.4rem;
-    }
-
-    .win-overlay p {
-      margin: 0;
-      font-size: 0.96rem;
-      color: rgba(46,58,61,0.82);
-    }
-
-    .win-overlay .actions {
-      margin-top: 14px;
-      display: flex;
-      justify-content: center;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    .win-overlay button {
-      background: rgba(255,255,255,0.9);
-      border: 1px solid rgba(0,0,0,0.05);
-      border-radius: 9px;
-      padding: 8px 12px;
-      font-weight: 700;
-      cursor: pointer;
-    }
-
-    @media (max-width: 620px) {
-      .hud {
-        padding: 8px 9px;
-        gap: 8px;
-      }
-      .hud .meta {
-        font-size: 11px;
-      }
-      .hud .meta strong {
-        font-size: 13px;
-      }
-      .hud button {
-        padding: 6px 8px;
-        font-size: 12px;
-      }
+    .note{ font-size:13px; color:#6b7480; text-align:center; margin-top:6px;}
+    @media (max-width:440px){
+      .hud{ left:10px; top:10px; padding:6px 10px; gap:8px; }
+      .hud .meta{ font-size:12px; }
     }
   </style>
 </head>
 <body>
-  <div class="wrapper">
+  <div class="container">
     <div class="stage">
-      <canvas id="gameCanvas" width="800" height="600"></canvas>
+      <canvas id="canvas" width="800" height="600"></canvas>
 
-      <div class="hud">
+      <div class="hud" id="hud">
         <div class="meta">
           <strong id="levelName">Level 1</strong>
-          <span>Strokes: <b id="strokeCount">0</b> | Par: <b id="parValue">3</b></span>
+          <div>Strokes: <span id="strokes">0</span> &nbsp;|&nbsp; Par: <span id="par">3</span></div>
         </div>
-        <button id="resetBtn" type="button">Reset Level</button>
+        <div class="controls">
+          <button id="resetBtn">Reset Level</button>
+        </div>
       </div>
 
-      <div class="win-overlay" id="winOverlay">
-        <h2 id="winTitle">Hole in one!</h2>
-        <p id="winDetail">Strokes: 3 | Par: 3</p>
-        <div class="actions">
-          <button id="nextBtn" type="button">Next Level</button>
-          <button id="replayBtn" type="button">Replay</button>
+      <div class="win" id="win">
+        <h3 id="winTitle">Hole in!</h3>
+        <p id="winText">Strokes: 0 • Par: 3</p>
+        <div class="row">
+          <button id="nextBtn">Next Level</button>
+          <button id="replayBtn">Replay</button>
         </div>
       </div>
     </div>
+
+    <div class="note">Click & drag anywhere (or on the ball) to aim. Release to shoot (slingshot).</div>
   </div>
 
   <script>
-    const canvas = document.getElementById("gameCanvas");
-    const ctx = canvas.getContext("2d");
+/* ============
+   Utility Vec
+   ============ */
+class Vec {
+  constructor(x=0,y=0){ this.x=x; this.y=y; }
+  clone(){ return new Vec(this.x,this.y); }
+  add(v){ return new Vec(this.x+v.x, this.y+v.y); }
+  sub(v){ return new Vec(this.x-v.x, this.y-v.y); }
+  mul(s){ return new Vec(this.x*s, this.y*s); }
+  div(s){ return new Vec(this.x/s, this.y/s); }
+  len(){ return Math.hypot(this.x,this.y); }
+  normalize(){ let l=this.len(); return l? this.div(l): new Vec(0,0); }
+  dot(v){ return this.x*v.x + this.y*v.y; }
+}
 
-    const levelNameEl = document.getElementById("levelName");
-    const strokeCountEl = document.getElementById("strokeCount");
-    const parValueEl = document.getElementById("parValue");
-    const resetBtn = document.getElementById("resetBtn");
-    const nextBtn = document.getElementById("nextBtn");
-    const replayBtn = document.getElementById("replayBtn");
-    const winOverlay = document.getElementById("winOverlay");
-    const winTitle = document.getElementById("winTitle");
-    const winDetail = document.getElementById("winDetail");
+/* ============
+   Ball
+   ============ */
+class Ball {
+  constructor(pos, radius=8){
+    this.pos = pos.clone();
+    this.radius = radius;
+    this.vel = new Vec(0,0);
+    this.inHole = false;
+    this.lastHitPos = pos.clone(); // for water penalty reset
+  }
 
-    class Vec {
-      constructor(x = 0, y = 0) {
-        this.x = x;
-        this.y = y;
-      }
-      clone() { return new Vec(this.x, this.y); }
-      add(v) { return new Vec(this.x + v.x, this.y + v.y); }
-      sub(v) { return new Vec(this.x - v.x, this.y - v.y); }
-      mul(s) { return new Vec(this.x * s, this.y * s); }
-      div(s) { return new Vec(this.x / s, this.y / s); }
-      len() { return Math.hypot(this.x, this.y); }
-      normalize() {
-        const length = this.len();
-        if (length === 0) return new Vec(0, 0);
-        return this.div(length);
-      }
-    }
+  resetTo(pos){
+    this.pos = pos.clone();
+    this.vel = new Vec(0,0);
+    this.inHole = false;
+  }
 
-    class Ball {
-      constructor(pos, radius = 8) {
-        this.pos = pos.clone();
-        this.radius = radius;
-        this.vel = new Vec(0, 0);
-        this.lastHitPos = pos.clone();
-        this.inHole = false;
-      }
+  draw(ctx){
+    // shadow
+    ctx.save();
+    ctx.fillStyle = 'rgba(0,0,0,0.08)';
+    ctx.beginPath();
+    ctx.ellipse(this.pos.x+3, this.pos.y+6, this.radius+4, this.radius+3, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
 
-      resetTo(pos) {
-        this.pos = pos.clone();
-        this.vel = new Vec(0, 0);
-        this.inHole = false;
-      }
+    // ball
+    ctx.beginPath();
+    ctx.fillStyle = '#fff';
+    ctx.arc(this.pos.x, this.pos.y, this.radius, 0, Math.PI*2);
+    ctx.fill();
 
-      isMoving() {
-        return this.vel.len() > 4;
-      }
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+    ctx.stroke();
+  }
+}
 
-      draw() {
-        ctx.save();
-        ctx.fillStyle = "rgba(16,18,20,0.12)";
-        ctx.beginPath();
-        ctx.ellipse(this.pos.x + 3, this.pos.y + 6, this.radius + 3, this.radius + 2.5, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
+/* ============
+   Hole
+   ============ */
+class Hole {
+  constructor(x,y,r=14){
+    this.pos = new Vec(x,y);
+    this.radius = r;
+  }
 
-        ctx.fillStyle = "#ffffff";
-        ctx.beginPath();
-        ctx.arc(this.pos.x, this.pos.y, this.radius, 0, Math.PI * 2);
-        ctx.fill();
+  draw(ctx){
+    // outer lip
+    ctx.save();
+    ctx.fillStyle = '#122029';
+    ctx.beginPath();
+    ctx.arc(this.pos.x, this.pos.y, this.radius+6, 0, Math.PI*2);
+    ctx.fill();
 
-        ctx.lineWidth = 1;
-        ctx.strokeStyle = "rgba(0,0,0,0.12)";
-        ctx.stroke();
-      }
-    }
+    // subtle inner
+    ctx.fillStyle = '#daf7d6';
+    ctx.beginPath();
+    ctx.arc(this.pos.x, this.pos.y, this.radius, 0, Math.PI*2);
+    ctx.fill();
 
-    class Hole {
-      constructor(x, y, radius = 16) {
-        this.x = x;
-        this.y = y;
-        this.radius = radius;
-      }
+    // flag pole
+    ctx.strokeStyle = '#122029';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(this.pos.x+12, this.pos.y-14);
+    ctx.lineTo(this.pos.x+12, this.pos.y-52);
+    ctx.stroke();
 
-      draw() {
-        ctx.save();
-        ctx.fillStyle = "#1f2d31";
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.radius + 5, 0, Math.PI * 2);
-        ctx.fill();
+    // flag
+    ctx.fillStyle = 'var(--flag)';
+    ctx.beginPath();
+    ctx.moveTo(this.pos.x+12, this.pos.y-52);
+    ctx.lineTo(this.pos.x+36, this.pos.y-40);
+    ctx.lineTo(this.pos.x+12, this.pos.y-30);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
 
-        ctx.fillStyle = "#dff5d9";
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-        ctx.fill();
+  tryHole(ball, speedThreshold){
+    // only sink if ball velocity below threshold and center within radius
+    const d = ball.pos.sub(this.pos).len();
+    if (d <= this.radius - 2 && ball.vel.len() <= speedThreshold) return true;
+    return false;
+  }
+}
 
-        ctx.strokeStyle = "#0d1d23";
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(this.x + 20, this.y - 18);
-        ctx.lineTo(this.x + 20, this.y - 52);
-        ctx.stroke();
+/* ============
+   Obstacle
+   types: wall (solid), bunker (sand), water (hazard), moving (solid)
+   rectangle defined by x,y,w,h
+   ============ */
+class Obstacle {
+  constructor(type,x,y,w,h,opts={}){
+    this.type = type;
+    this.rect = {x:x,y:y,w:w,h:h};
+    this.opts = opts;
+    // for moving
+    this.base = {x:x,y:y};
+    this.phase = Math.random()*Math.PI*2;
+  }
 
-        ctx.fillStyle = "#ff6b6b";
-        ctx.beginPath();
-        ctx.moveTo(this.x + 20, this.y - 52);
-        ctx.lineTo(this.x + 46, this.y - 38);
-        ctx.lineTo(this.x + 20, this.y - 26);
-        ctx.closePath();
-        ctx.fill();
-        ctx.restore();
-      }
+  update(dt){
+    if (this.type !== 'moving') return;
+    const t = performance.now()*0.001;
+    const rx = this.opts.rangeX || 0;
+    const ry = this.opts.rangeY || 0;
+    const speed = this.opts.speed || 1.0;
+    this.rect.x = this.base.x + Math.sin(t*speed + this.phase) * rx;
+    this.rect.y = this.base.y + Math.cos(t*speed*1.1 + this.phase) * ry;
+  }
 
-      checkBall(ball) {
-        const dx = ball.pos.x - this.x;
-        const dy = ball.pos.y - this.y;
-        const dist = Math.hypot(dx, dy);
-        return dist <= this.radius + ball.radius + 1 && ball.vel.len() < 20;
-      }
-    }
+  containsPoint(p){
+    return p.x >= this.rect.x && p.x <= this.rect.x + this.rect.w &&
+           p.y >= this.rect.y && p.y <= this.rect.y + this.rect.h;
+  }
 
-    class Obstacle {
-      constructor(type, x, y, w, h, options = {}) {
-        this.type = type;
-        this.x = x;
-        this.y = y;
-        this.w = w;
-        this.h = h;
-        this.options = options;
-        this.baseX = x;
-        this.baseY = y;
-        this.phase = Math.random() * Math.PI * 2;
-      }
-
-      update(dt) {
-        if (this.type !== "moving") return;
-
-        const { rangeX = 0, rangeY = 0, speed = 1.2 } = this.options;
-        const t = performance.now() * 0.001 * speed + this.phase;
-        this.x = this.baseX + Math.sin(t) * rangeX;
-        this.y = this.baseY + Math.cos(t * 1.3) * rangeY;
-      }
-
-      containsPoint(point) {
-        return (
-          point.x >= this.x &&
-          point.x <= this.x + this.w &&
-          point.y >= this.y &&
-          point.y <= this.y + this.h
-        );
-      }
-
-      draw() {
-        switch (this.type) {
-          case "wall":
-            ctx.fillStyle = "#567d74";
-            ctx.fillRect(this.x, this.y, this.w, this.h);
-            break;
-
-          case "bunker":
-            ctx.fillStyle = "#ead8b9";
-            ctx.fillRect(this.x, this.y, this.w, this.h);
-
-            ctx.strokeStyle = "rgba(145,117,73,0.3)";
-            ctx.lineWidth = 1.2;
-            for (let i = 0; i < 5; i++) {
-              ctx.beginPath();
-              ctx.moveTo(this.x + i * (this.w / 5), this.y);
-              ctx.lineTo(this.x + i * (this.w / 5) + 12, this.y + this.h);
-              ctx.stroke();
-            }
-            break;
-
-          case "water":
-            ctx.fillStyle = "#bfe9ff";
-            ctx.fillRect(this.x, this.y, this.w, this.h);
-
-            ctx.strokeStyle = "rgba(94,139,178,0.4)";
-            ctx.lineWidth = 1.5;
-            ctx.beginPath();
-            for (let x = this.x; x < this.x + this.w; x += 14) {
-              ctx.moveTo(x, this.y + 2);
-              ctx.quadraticCurveTo(x + 6, this.y + this.h * 0.5, x + 12, this.y + this.h - 2);
-            }
-            ctx.stroke();
-            break;
-
-          case "moving":
-            ctx.fillStyle = "#9ea3ff";
-            ctx.fillRect(this.x, this.y, this.w, this.h);
-
-            ctx.strokeStyle = "rgba(60,65,120,0.6)";
-            ctx.lineWidth = 2;
-            ctx.strokeRect(this.x, this.y, this.w, this.h);
-            break;
-        }
-      }
-    }
-
-    class Level {
-      constructor(config) {
-        this.name = config.name;
-        this.par = config.par;
-        this.start = new Vec(config.start.x, config.start.y);
-        this.hole = new Hole(config.hole.x, config.hole.y, config.hole.radius || 16);
-        this.obstacles = config.obstacles.map(o => new Obstacle(o.type, o.x, o.y, o.w, o.h, o.options || {}));
-        this.baseFriction = config.baseFriction || 180;
-        this.bunkerFriction = config.bunkerFriction || 420;
-      }
-
-      drawBackground() {
-        ctx.fillStyle = "#edf7ed";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        ctx.fillStyle = "#3a8f5f";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        // subtle fairway texture
-        ctx.strokeStyle = "rgba(255,255,255,0.08)";
-        ctx.lineWidth = 1;
-        for (let i = 0; i < canvas.width; i += 28) {
+  draw(ctx){
+    ctx.save();
+    switch(this.type){
+      case 'wall':
+        ctx.fillStyle = '#4b6b66';
+        ctx.fillRect(this.rect.x, this.rect.y, this.rect.w, this.rect.h);
+        break;
+      case 'bunker':
+        ctx.fillStyle = 'var(--bunker)';
+        ctx.fillRect(this.rect.x, this.rect.y, this.rect.w, this.rect.h);
+        // sand hatch
+        ctx.strokeStyle = 'rgba(120,90,50,0.14)';
+        for(let i=0;i<10;i++){
           ctx.beginPath();
-          ctx.moveTo(i, 0);
-          ctx.lineTo(i + 12, canvas.height);
+          ctx.moveTo(this.rect.x + i*(this.rect.w/10), this.rect.y);
+          ctx.lineTo(this.rect.x + i*(this.rect.w/10) + 12, this.rect.y + this.rect.h);
           ctx.stroke();
         }
-
-        ctx.fillStyle = "rgba(18, 39, 24, 0.12)";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-      }
-
-      update(dt) {
-        for (const obstacle of this.obstacles) obstacle.update(dt);
-      }
-
-      draw() {
-        for (const obstacle of this.obstacles) obstacle.draw();
-        this.hole.draw();
-      }
+        break;
+      case 'water':
+        ctx.fillStyle = 'var(--water)';
+        ctx.fillRect(this.rect.x, this.rect.y, this.rect.w, this.rect.h);
+        // waves
+        ctx.strokeStyle = 'rgba(80,140,180,0.3)';
+        for(let x=this.rect.x; x<this.rect.x+this.rect.w; x+=14){
+          ctx.beginPath();
+          ctx.moveTo(x, this.rect.y+6);
+          ctx.quadraticCurveTo(x+7, this.rect.y + this.rect.h*0.5, x+14, this.rect.y + this.rect.h - 6);
+          ctx.stroke();
+        }
+        break;
+      case 'moving':
+        ctx.fillStyle = '#8fa8ff';
+        ctx.fillRect(this.rect.x, this.rect.y, this.rect.w, this.rect.h);
+        ctx.strokeStyle = 'rgba(40,50,90,0.25)';
+        ctx.strokeRect(this.rect.x, this.rect.y, this.rect.w, this.rect.h);
+        break;
     }
+    ctx.restore();
+  }
+}
 
-    class LevelManager {
-      constructor() {
-        this.levels = [
-          new Level({
-            name: "Level 1",
-            par: 3,
-            start: { x: 90, y: 500 },
-            hole: { x: 700, y: 115 },
-            baseFriction: 195,
-            bunkerFriction: 460,
-            obstacles: [
-              { type: "wall", x: 300, y: 80, w: 26, h: 270 },
-              { type: "wall", x: 490, y: 330, w: 26, h: 180 },
-              { type: "bunker", x: 600, y: 90, w: 125, h: 70 }
-            ]
-          }),
-          new Level({
-            name: "Level 2",
-            par: 4,
-            start: { x: 90, y: 500 },
-            hole: { x: 700, y: 120 },
-            baseFriction: 185,
-            bunkerFriction: 500,
-            obstacles: [
-              { type: "wall", x: 185, y: 430, w: 18, h: 120 },
-              { type: "wall", x: 185, y: 430, w: 320, h: 18 },
-              { type: "wall", x: 470, y: 150, w: 18, h: 300 },
-              { type: "wall", x: 500, y: 150, w: 200, h: 18 },
-              { type: "bunker", x: 260, y: 300, w: 150, h: 90 },
-              { type: "bunker", x: 545, y: 230, w: 120, h: 100 }
-            ]
-          }),
-          new Level({
-            name: "Level 3",
-            par: 5,
-            start: { x: 85, y: 520 },
-            hole: { x: 710, y: 120 },
-            baseFriction: 200,
-            bunkerFriction: 540,
-            obstacles: [
-              { type: "wall", x: 100, y: 100, w: 18, h: 400 },
-              { type: "wall", x: 100, y: 500, w: 460, h: 18 },
-              { type: "wall", x: 355, y: 80, w: 18, h: 330 },
-              { type: "wall", x: 500, y: 100, w: 18, h: 360 },
-              { type: "wall", x: 500, y: 455, w: 230, h: 18 },
-              { type: "water", x: 220, y: 220, w: 120, h: 100 },
-              { type: "water", x: 560, y: 175, w: 110, h: 110 },
-              { type: "bunker", x: 550, y: 300, w: 120, h: 96 },
-              { type: "moving", x: 280, y: 280, w: 34, h: 34, options: { rangeX: 100, rangeY: 0, speed: 1.2 } }
-            ]
-          })
-        ];
-        this.index = 0;
-      }
+/* ============
+   Level & LevelManager
+   ============ */
+class Level {
+  constructor(cfg){
+    this.name = cfg.name;
+    this.par = cfg.par || 3;
+    this.start = new Vec(cfg.start.x, cfg.start.y);
+    this.hole = new Hole(cfg.hole.x, cfg.hole.y, cfg.holeRadius || 14);
+    this.obstacles = (cfg.obstacles || []).map(o => new Obstacle(o.type, o.x, o.y, o.w, o.h, o.opts || {}));
+    this.baseFriction = cfg.baseFriction || 180; // px/s^2
+    this.bunkerFriction = cfg.bunkerFriction || 700; // px/s^2 (higher)
+  }
+  update(dt){
+    for(const o of this.obstacles) o.update(dt);
+  }
+  drawBackground(ctx,w,h){
+    // draw fairway base
+    ctx.fillStyle = 'var(--fairway)';
+    ctx.fillRect(0,0,w,h);
 
-      current() {
-        return this.levels[this.index];
-      }
+    // soft overlay gradient to keep pastel aesthetic
+    const g = ctx.createLinearGradient(0,0,0,h);
+    g.addColorStop(0,'rgba(255,255,255,0.06)');
+    g.addColorStop(1,'rgba(0,0,0,0.02)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0,0,w,h);
 
-      next() {
-        this.index = (this.index + 1) % this.levels.length;
-      }
-
-      resetIndex() {
-        this.index = 0;
-      }
+    // optional dashed grass lines
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+    ctx.lineWidth = 1;
+    for(let x=0;x<w;x+=36){
+      ctx.beginPath();
+      ctx.moveTo(x,0);
+      ctx.lineTo(x+12,h);
+      ctx.stroke();
     }
+    ctx.restore();
+  }
+}
 
-    class Game {
-      constructor() {
-        this.levelManager = new LevelManager();
-        this.level = this.levelManager.current();
-        this.ball = new Ball(this.level.start.clone());
-        this.strokeCount = 0;
-        this.dragging = false;
-        this.dragPoint = null;
-        this.won = false;
-        this.over = false;
+class LevelManager {
+  constructor(){
+    this.levels = [];
+    this.index = 0;
+    this.createLevels();
+  }
 
-        this.bindEvents();
-        this.updateHud();
-      }
+  createLevels(){
+    // Level 1: simple straight shot with single wall obstacle
+    this.levels.push(new Level({
+      name: 'Level 1',
+      par: 3,
+      start: {x:80,y:520},
+      hole: {x:700,y:100},
+      baseFriction: 180,
+      bunkerFriction: 600,
+      obstacles: [
+        {type:'wall', x:360, y:150, w:20, h:300}
+      ]
+    }));
 
-      bindEvents() {
-        resetBtn.addEventListener("click", () => this.resetCurrentLevel());
-        replayBtn.addEventListener("click", () => this.resetCurrentLevel());
+    // Level 2: dog-leg L-shaped with sand bunkers
+    this.levels.push(new Level({
+      name: 'Level 2',
+      par: 4,
+      start: {x:80,y:520},
+      hole: {x:700,y:120},
+      baseFriction: 200,
+      bunkerFriction: 700,
+      obstacles: [
+        // L-shaped walls forming dog-leg
+        {type:'wall', x:160, y:420, w:20, h:160},
+        {type:'wall', x:160, y:420, w:360, h:20},
+        // bunkers
+        {type:'bunker', x:260, y:310, w:160, h:80},
+        {type:'bunker', x:520, y:210, w:140, h:90}
+      ]
+    }));
 
-        nextBtn.addEventListener("click", () => {
-          this.levelManager.next();
-          this.loadLevel(this.levelManager.index);
-        });
+    // Level 3: complex with waters, narrow fairway, moving obstacle
+    this.levels.push(new Level({
+      name: 'Level 3',
+      par: 5,
+      start: {x:70,y:540},
+      hole: {x:730,y:90},
+      baseFriction: 200,
+      bunkerFriction: 760,
+      obstacles: [
+        // narrow channel walls
+        {type:'wall', x:60, y:80, w:18, h:460},
+        {type:'wall', x:60, y:520, w:520, h:18},
+        {type:'wall', x:540, y:80, w:18, h:440},
+        {type:'wall', x:540, y:520, w:260, h:18},
+        // waters
+        {type:'water', x:220, y:210, w:120, h:90},
+        {type:'water', x:560, y:160, w:120, h:120},
+        // bunker
+        {type:'bunker', x:590, y:300, w:120, h:90},
+        // moving obstacle (e.g., cart)
+        {type:'moving', x:310, y:300, w:34, h:34, opts:{rangeX:120, rangeY:0, speed:1.2}}
+      ]
+    }));
+  }
 
-        canvas.addEventListener("pointerdown", (event) => {
-          if (this.over || this.won) return;
-          if (this.ball.isMoving()) return;
+  current(){ return this.levels[this.index]; }
+  next(){ this.index = Math.min(this.index+1, this.levels.length-1); }
+  prev(){ this.index = Math.max(this.index-1, 0); }
+  resetIndex(){ this.index = 0; }
+}
 
-          const pos = this.getPointer(event);
-          this.dragging = true;
-          this.dragPoint = pos;
-        });
+/* ============
+   Game
+   ============ */
+class Game {
+  constructor(canvas){
+    this.canvas = canvas;
+    this.ctx = canvas.getContext('2d');
+    this.W = canvas.width;
+    this.H = canvas.height;
 
-        canvas.addEventListener("pointermove", (event) => {
-          if (!this.dragging) return;
-          this.dragPoint = this.getPointer(event);
-        });
+    this.levelManager = new LevelManager();
+    this.level = this.levelManager.current();
 
-        canvas.addEventListener("pointerup", () => {
-          if (!this.dragging) return;
-          if (!this.ball.isMoving()) {
-            this.launchBallFromDrag();
-          }
-          this.dragging = false;
-          this.dragPoint = null;
-        });
+    this.ball = new Ball(this.level.start.clone(), 8);
+    this.strokeCount = 0;
 
-        canvas.addEventListener("pointerleave", () => {
-          if (this.dragging) {
-            this.dragging = false;
-            this.dragPoint = null;
-          }
-        });
+    // control state
+    this.dragging = false;
+    this.dragStart = null; // pointer down pos
+    this.dragPos = null;   // current pointer pos
+    this.maxPower = 850;   // cap for shot power magnitude
+    this.powerScale = 1.0; // tuning scalar
+    this.holeSpeedThreshold = 28; // ball velocity must be <= this to sink
+    this.running = true;
 
-        window.addEventListener("keydown", (event) => {
-          if (event.key.toLowerCase() === "r") this.resetCurrentLevel();
-        });
-      }
+    // bindings
+    this._bindEvents();
+    this._updateHud();
+    this.lastTime = performance.now();
+    this._raf = requestAnimationFrame(this._loop.bind(this));
+  }
 
-      getPointer(event) {
-        const rect = canvas.getBoundingClientRect();
-        const scaleX = canvas.width / rect.width;
-        const scaleY = canvas.height / rect.height;
-        return {
-          x: (event.clientX - rect.left) * scaleX,
-          y: (event.clientY - rect.top) * scaleY
-        };
-      }
+  _bindEvents(){
+    // pointer events for both mouse and touch
+    this.canvas.addEventListener('pointerdown', (e)=>this._onPointerDown(e));
+    window.addEventListener('pointermove', (e)=>this._onPointerMove(e));
+    window.addEventListener('pointerup', (e)=>this._onPointerUp(e));
 
-      updateHud() {
-        levelNameEl.textContent = this.level.name;
-        strokeCountEl.textContent = this.strokeCount;
-        parValueEl.textContent = this.level.par;
-      }
+    // UI
+    document.getElementById('resetBtn').addEventListener('click', ()=>this.resetLevel());
+    document.getElementById('nextBtn').addEventListener('click', ()=>this.nextLevel());
+    document.getElementById('replayBtn').addEventListener('click', ()=>this.resetLevel());
+    // keyboard
+    window.addEventListener('keydown', (e)=>{ if(e.key==='r' || e.key==='R') this.resetLevel(); });
+  }
 
-      loadLevel(index) {
-        this.levelManager.index = index;
-        this.level = this.levelManager.current();
-        this.ball = new Ball(this.level.start.clone());
-        this.strokeCount = 0;
-        this.dragging = false;
-        this.dragPoint = null;
-        this.won = false;
-        this.over = false;
-        winOverlay.style.display = "none";
-        this.updateHud();
-      }
+  _pointerToCanvas(e){
+    const rect = this.canvas.getBoundingClientRect();
+    const scaleX = this.canvas.width / rect.width;
+    const scaleY = this.canvas.height / rect.height;
+    return new Vec((e.clientX - rect.left) * scaleX, (e.clientY - rect.top) * scaleY);
+  }
 
-      resetCurrentLevel() {
-        this.ball = new Ball(this.level.start.clone());
-        this.strokeCount = 0;
-        this.dragging = false;
-        this.dragPoint = null;
-        this.won = false;
-        this.over = false;
-        winOverlay.style.display = "none";
-        this.updateHud();
-      }
+  _onPointerDown(e){
+    if (!this.running) return;
+    const p = this._pointerToCanvas(e);
+    // only start dragging if ball stationary OR pointer is on ball OR anywhere (spec allows anywhere)
+    // allow anywhere but if ball is moving ignore
+    if (this.ball.vel.len() > 8) return;
+    this.dragging = true;
+    this.dragStart = p;
+    this.dragPos = p.clone();
+  }
 
-      launchBallFromDrag() {
-        if (!this.dragPoint) return;
-        const dx = this.ball.pos.x - this.dragPoint.x;
-        const dy = this.ball.pos.y - this.dragPoint.y;
-        const distance = Math.hypot(dx, dy);
+  _onPointerMove(e){
+    if (!this.dragging) return;
+    this.dragPos = this._pointerToCanvas(e);
+  }
 
-        if (distance < 6) return;
+  _onPointerUp(e){
+    if (!this.dragging) return;
+    this.dragging = false;
+    // launch ball using slingshot: direction = ball.pos - dragPos
+    const drag = this.ball.pos.sub(this.dragPos);
+    const dist = drag.len();
+    if (dist < 6) { this.dragStart = null; this.dragPos = null; return; }
+    // scale to power and cap
+    let power = dist * 1.35 * this.powerScale;
+    power = Math.min(power, this.maxPower);
+    const dir = drag.normalize();
+    // set velocity (px/s)
+    this.ball.vel = dir.mul(power);
+    // update lastHitPos for water penalty
+    this.ball.lastHitPos = this.ball.pos.clone();
+    this.strokeCount++;
+    this._updateHud();
+    this.dragStart = null;
+    this.dragPos = null;
+  }
 
-        const maxShot = 690;
-        const strength = Math.min(maxShot, distance * 0.45);
+  resetLevel(){
+    this.level = this.levelManager.current();
+    this.ball.resetTo(this.level.start);
+    this.strokeCount = 0;
+    this._updateHud();
+    this._hideWin();
+  }
 
-        const dirX = dx / distance;
-        const dirY = dy / distance;
+  nextLevel(){
+    this.levelManager.next();
+    this.level = this.levelManager.current();
+    this.ball.resetTo(this.level.start);
+    this.strokeCount = 0;
+    this._updateHud();
+    this._hideWin();
+  }
 
-        this.ball.vel = new Vec(dirX * strength, dirY * strength);
-        this.ball.lastHitPos = this.ball.pos.clone();
-        this.strokeCount += 1;
-        this.updateHud();
-      }
+  _updateHud(){
+    document.getElementById('strokes').textContent = this.strokeCount;
+    document.getElementById('par').textContent = this.level.par;
+    document.getElementById('levelName').textContent = this.level.name;
+  }
 
-      handleBoundsCollision() {
-        const pad = this.ball.radius;
-        const maxX = canvas.width - pad;
-        const maxY = canvas.height - pad;
+  _showWin(){
+    document.getElementById('win').style.display = 'block';
+    document.getElementById('winTitle').textContent = this._winPhrase();
+    document.getElementById('winText').textContent = `Strokes: ${this.strokeCount} • Par: ${this.level.par}`;
+    // hide next if last
+    const isLast = (this.levelManager.index >= this.levelManager.levels.length - 1);
+    document.getElementById('nextBtn').style.display = isLast ? 'none' : 'inline-block';
+  }
+  _hideWin(){ document.getElementById('win').style.display = 'none'; }
 
-        if (this.ball.pos.x < pad) {
-          this.ball.pos.x = pad;
-          this.ball.vel.x = Math.abs(this.ball.vel.x);
+  _winPhrase(){
+    if (this.strokeCount <= this.level.par - 2) return 'Eagle!';
+    if (this.strokeCount === this.level.par -1) return 'Birdie!';
+    if (this.strokeCount === this.level.par) return 'Par!';
+    return 'Nice!';
+  }
+
+  // physics: integrate ball movement and handle collisions
+  _update(dt){
+    // update moving obstacles
+    this.level.update(dt);
+
+    // update ball
+    if (!this.ball.inHole){
+      // friction: linear deceleration (px/s^2)
+      let friction = this.level.baseFriction;
+      // if in bunker area, increase friction drastically
+      for(const ob of this.level.obstacles){
+        if (ob.type === 'bunker' && ob.containsPoint(this.ball.pos)){
+          friction = this.level.bunkerFriction;
+          break;
         }
-        if (this.ball.pos.x > maxX) {
-          this.ball.pos.x = maxX;
-          this.ball.vel.x = -Math.abs(this.ball.vel.x);
-        }
-        if (this.ball.pos.y < pad) {
-          this.ball.pos.y = pad;
-          this.ball.vel.y = Math.abs(this.ball.vel.y);
-        }
-        if (this.ball.pos.y > maxY) {
-          this.ball.pos.y = maxY;
-          this.ball.vel.y = -Math.abs(this.ball.vel.y);
-        }
       }
 
-      resolveCircleRectCollision(ball, rect) {
-        const nearestX = Math.min(Math.max(ball.pos.x, rect.x), rect.x + rect.w);
-        const nearestY = Math.min(Math.max(ball.pos.y, rect.y), rect.y + rect.h);
-        const dx = ball.pos.x - nearestX;
-        const dy = ball.pos.y - nearestY;
-        const distSq = dx * dx + dy * dy;
-        const radius = ball.radius;
-
-        if (distSq < radius * radius) {
-          const dist = Math.sqrt(distSq) || 0.0001;
-          const nx = dx / dist;
-          const ny = dy / dist;
-          const overlap = radius - dist;
-
-          ball.pos.x += nx * (overlap + 0.5);
-          ball.pos.y += ny * (overlap + 0.5);
-
-          const vn = ball.vel.x * nx + ball.vel.y * ny;
-          if (vn < 0) {
-            ball.vel.x -= 2 * vn * nx;
-            ball.vel.y -= 2 * vn * ny;
-          }
-
-          return true;
-        }
-        return false;
+      // apply deceleration
+      const speed = this.ball.vel.len();
+      if (speed > 0){
+        const decel = friction * dt;
+        const newSpeed = Math.max(0, speed - decel);
+        if (newSpeed === 0) this.ball.vel = new Vec(0,0);
+        else this.ball.vel = this.ball.vel.mul(newSpeed / speed);
       }
 
-      handleObstacleCollisions() {
-        for (const obstacle of this.level.obstacles) {
-          if (obstacle.type === "water") {
-            if (this.resolveCircleRectCollision(this.ball, obstacle)) {
-              // same collision used only for solid boundary fallback, but water is hazard not wall
-            }
-            if (obstacle.containsPoint(this.ball.pos)) {
-              this.ball.resetTo(this.ball.lastHitPos);
-              this.strokeCount += 1;
-              this.updateHud();
-              return;
-            }
-            continue;
-          }
+      // integrate position
+      this.ball.pos = this.ball.pos.add(this.ball.vel.mul(dt));
 
-          if (obstacle.type === "bunker" || obstacle.type === "wall" || obstacle.type === "moving") {
-            const hit = this.resolveCircleRectCollision(this.ball, obstacle);
-            if (hit) {
-              // small push correction for very sharp collisions
-              if (this.ball.vel.len() < 120) {
-                this.ball.vel = this.ball.vel.mul(0.92);
-              }
-            }
-          }
-        }
-      }
+      // bounds collision (canvas edges) - perfect elastic
+      const r = this.ball.radius;
+      if (this.ball.pos.x < r){ this.ball.pos.x = r; this.ball.vel.x = Math.abs(this.ball.vel.x); }
+      if (this.ball.pos.x > this.W - r){ this.ball.pos.x = this.W - r; this.ball.vel.x = -Math.abs(this.ball.vel.x); }
+      if (this.ball.pos.y < r){ this.ball.pos.y = r; this.ball.vel.y = Math.abs(this.ball.vel.y); }
+      if (this.ball.pos.y > this.H - r){ this.ball.pos.y = this.H - r; this.ball.vel.y = -Math.abs(this.ball.vel.y); }
 
-      updateBall(dt) {
-        if (this.ball.inHole) return;
-
-        let friction = this.level.baseFriction;
-
-        for (const obstacle of this.level.obstacles) {
-          if (obstacle.type === "bunker" && obstacle.containsPoint(this.ball.pos)) {
-            friction = this.level.bunkerFriction;
+      // obstacle collisions: treat rects as solid except water
+      for(const ob of this.level.obstacles){
+        if (ob.type === 'water'){
+          // hazard: if ball enters, reset to lastHitPos + add penalty stroke
+          if (ob.containsPoint(this.ball.pos)){
+            // teleport back to lastHitPos, stop movement
+            this.ball.resetTo(this.ball.lastHitPos);
+            this.strokeCount++;
+            this._updateHud();
             break;
           }
+          continue;
         }
 
-        const speed = this.ball.vel.len();
-        if (speed > 0) {
-          const decel = friction * dt;
-          const newSpeed = Math.max(0, speed - decel);
-          if (newSpeed === 0) {
-            this.ball.vel = new Vec(0, 0);
-          } else {
-            this.ball.vel = this.ball.vel.mul(newSpeed / speed);
+        // circle-rect collision resolution (elastic)
+        const rect = ob.rect;
+        // nearest point on rect to circle center
+        const nx = Math.max(rect.x, Math.min(this.ball.pos.x, rect.x + rect.w));
+        const ny = Math.max(rect.y, Math.min(this.ball.pos.y, rect.y + rect.h));
+        const dx = this.ball.pos.x - nx;
+        const dy = this.ball.pos.y - ny;
+        const dist2 = dx*dx + dy*dy;
+        const r2 = this.ball.radius * this.ball.radius;
+        if (dist2 < r2){
+          const dist = Math.sqrt(dist2) || 0.0001;
+          // normal from rect toward ball
+          const normal = new Vec(dx/dist, dy/dist);
+          // push ball out of obstacle minimally
+          const overlap = this.ball.radius - dist;
+          this.ball.pos.x += normal.x * (overlap + 0.5);
+          this.ball.pos.y += normal.y * (overlap + 0.5);
+          // reflect velocity around normal (perfect elastic)
+          const v = this.ball.vel;
+          const vn = v.dot(normal);
+          if (vn < 0){
+            // v' = v - 2*(v·n)*n
+            this.ball.vel = v.sub(normal.mul(2*vn));
+            // reduce slightly to avoid infinite rebounds at tiny values
+            this.ball.vel = this.ball.vel.mul(0.995);
           }
         }
-
-        this.ball.pos = this.ball.pos.add(this.ball.vel.mul(dt));
-
-        this.handleBoundsCollision();
-        this.handleObstacleCollisions();
-
-        const waterHazard = this.level.obstacles.find(o => o.type === "water" && o.containsPoint(this.ball.pos));
-        if (waterHazard) {
-          this.ball.resetTo(this.ball.lastHitPos);
-          this.strokeCount += 1;
-          this.updateHud();
-        }
-
-        if (this.level.hole.checkBall(this.ball)) {
-          this.ball.inHole = true;
-          this.won = true;
-          this.over = true;
-          this.showWin();
-        }
       }
 
-      showWin() {
-        const diff = this.strokeCount - this.level.par;
-        let phrase = "Nice round!";
-        if (this.strokeCount === this.level.par) phrase = "Par!";
-        else if (this.strokeCount === this.level.par - 1) phrase = "Birdie!";
-        else if (this.strokeCount === this.level.par - 2) phrase = "Eagle!";
-        else if (this.strokeCount > this.level.par) phrase = "Solid finish!";
-
-        winTitle.textContent = phrase;
-        winDetail.textContent = "Strokes: " + this.strokeCount + " | Par: " + this.level.par + (diff < 0 ? " (" + diff + ")" : " (+" + Math.abs(diff) + ")");
-        winOverlay.style.display = "block";
-
-        const isLastLevel = this.levelManager.index >= this.levelManager.levels.length - 1;
-        nextBtn.style.display = isLastLevel ? "none" : "inline-block";
+      // check hole: only sink when velocity below threshold
+      if (this.level.hole.tryHole(this.ball, this.holeSpeedThreshold)){
+        this.ball.inHole = true;
+        this.ball.vel = new Vec(0,0);
+        this._showWin();
       }
+    }
+  }
 
-      drawAimGuide() {
-        if (!this.dragging || this.ball.isMoving() || this.won) return;
-        if (!this.dragPoint) return;
+  _draw(){
+    const ctx = this.ctx;
+    // clear
+    ctx.clearRect(0,0,this.W,this.H);
 
-        const fromX = this.ball.pos.x;
-        const fromY = this.ball.pos.y;
-        const toX = this.dragPoint.x;
-        const toY = this.dragPoint.y;
+    // background & fairway
+    this.level.drawBackground(ctx,this.W,this.H);
 
-        ctx.save();
-        ctx.setLineDash([8, 10]);
-        ctx.strokeStyle = "rgba(35, 94, 160, 0.85)";
-        ctx.lineWidth = 2.4;
+    // obstacles
+    for(const ob of this.level.obstacles) ob.draw(ctx);
+
+    // hole (draw after obstacles so visible)
+    this.level.hole.draw(ctx);
+
+    // aim guide dotted + elongating
+    if (this.dragging && this.dragPos && this.ball.vel.len() < 8 && !this.ball.inHole){
+      // dotted line from ball -> pointer but with slingshot direction (opposite)
+      const from = this.ball.pos;
+      const to = this.dragPos;
+      const dragVec = from.sub(to);
+      const dist = dragVec.len();
+      const maxLen = 300;
+      const drawLen = Math.min(dist, maxLen);
+
+      const end = from.add(dragVec.normalize().mul(-drawLen)); // show opposite direction for clarity
+      // dashed line
+      ctx.save();
+      ctx.setLineDash([6,8]);
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+      ctx.beginPath();
+      ctx.moveTo(from.x, from.y);
+      ctx.lineTo(to.x, to.y);
+      ctx.stroke();
+
+      // power indicator: series of dots along reverse direction (where ball will go)
+      const pCount = Math.min(12, Math.ceil(drawLen / 24));
+      for(let i=1;i<=pCount;i++){
+        const t = i / (pCount + 1);
+        const px = from.x + (to.x - from.x) * t;
+        const py = from.y + (to.y - from.y) * t;
+        ctx.fillStyle = `rgba(30,40,50,${0.12 + 0.06*i})`;
         ctx.beginPath();
-        ctx.moveTo(fromX, fromY);
-        ctx.lineTo(toX, toY);
-        ctx.stroke();
-
-        const dx = toX - fromX;
-        const dy = toY - fromY;
-        const dist = Math.hypot(dx, dy);
-        const maxLine = Math.min(220, dist);
-
-        const lx = fromX + (dx / (dist || 1)) * maxLine;
-        const ly = fromY + (dy / (dist || 1)) * maxLine;
-
-        ctx.setLineDash([]);
-        ctx.fillStyle = "rgba(35, 94, 160, 0.85)";
-        ctx.beginPath();
-        ctx.arc(toX, toY, 4, 0, Math.PI * 2);
+        ctx.arc(px, py, 3, 0, Math.PI*2);
         ctx.fill();
-
-        ctx.strokeStyle = "rgba(35, 94, 160, 0.8)";
-        ctx.beginPath();
-        ctx.moveTo(fromX, fromY);
-        ctx.lineTo(lx, ly);
-        ctx.stroke();
-
-        ctx.restore();
       }
 
-      draw() {
-        this.level.drawBackground();
-        this.level.draw();
-        this.drawAimGuide();
-        this.ball.draw();
-      }
-
-      update(dt) {
-        if (!this.over) {
-          this.level.update(dt);
-          this.updateBall(dt);
-        }
-      }
+      // power bubble at pointer
+      const power = Math.min(drawLen * 1.35, this.maxPower);
+      const size = 8 + Math.min(28, Math.round(power/40));
+      ctx.fillStyle = 'rgba(255,255,255,0.95)';
+      ctx.beginPath();
+      ctx.arc(to.x, to.y, size, 0, Math.PI*2);
+      ctx.fill();
+      ctx.restore();
     }
 
-    const game = new Game();
+    // ball
+    this.ball.draw(ctx);
+  }
 
-    let lastTime = performance.now();
-    function frame(now) {
-      const dt = Math.min((now - lastTime) / 1000, 0.033);
-      lastTime = now;
-      game.update(dt);
-      game.draw();
-      requestAnimationFrame(frame);
-    }
+  _loop(now){
+    const dt = Math.min((now - this.lastTime) / 1000, 0.033); // clamp dt for stability
+    this.lastTime = now;
+    this._update(dt);
+    this._draw();
+    requestAnimationFrame(this._loop.bind(this));
+  }
+}
 
-    requestAnimationFrame(frame);
+/* ============
+   Init & Start
+   ============ */
+const canvas = document.getElementById('canvas');
+const game = new Game(canvas);
+
+// expose helpers to UI (level change with next button handled inside game via LevelManager)
+document.getElementById('resetBtn').addEventListener('click', ()=> {
+  game.resetLevel();
+});
+document.getElementById('nextBtn').addEventListener('click', ()=> {
+  game.nextLevel();
+  game._updateHud();
+});
+document.getElementById('replayBtn').addEventListener('click', ()=> {
+  game.resetLevel();
+  game._updateHud();
+});
+
+// make canvas size responsive while keeping internal 800x600 coordinates
+(function responsiveCanvas(){
+  function fit(){
+    const wrapper = canvas.parentElement;
+    const style = getComputedStyle(wrapper);
+    const padX = parseFloat(style.paddingLeft || 0) + parseFloat(style.paddingRight || 0);
+    const maxW = Math.min(window.innerWidth - 40, 900);
+    const width = Math.min(maxW, 800);
+    const aspect = 800/600;
+    const height = Math.round(width / aspect);
+    canvas.style.width = width + 'px';
+    canvas.style.height = height + 'px';
+  }
+  window.addEventListener('resize', fit);
+  fit();
+})();
   </script>
 </body>
 </html>
