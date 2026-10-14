@@ -4,7 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Perfect Orbit Golf</title>
-    <meta name="description" content="A polished golf trainer with upgrades, leaderboard, audio, and local progression." />
+    <meta
+      name="description"
+      content="A polished golf trainer with upgrades, leaderboard, audio, and local progression."
+    />
     <link rel="stylesheet" href="css/styles.css" />
   </head>
   <body>
@@ -37,9 +40,7 @@
 
       <main class="game-layout">
         <section class="course-panel">
-          <!-- starfield canvas sits below the game canvas for depth -->
           <canvas id="bgStars" class="bg-stars" aria-hidden="true"></canvas>
-
           <canvas id="gameCanvas" width="1200" height="760"></canvas>
 
           <div class="hud-overlay">
@@ -69,6 +70,7 @@
               </svg>
               <button id="shootBtn" class="shoot-btn">Shoot</button>
             </div>
+
             <div class="shot-summary">
               <div class="shot-line"><span>Power</span><strong id="shotPowerValue">0</strong></div>
               <div class="shot-line"><span>Accuracy</span><strong id="shotAccValue">0</strong></div>
@@ -91,6 +93,7 @@
               </div>
               <div class="meter"><i id="powerMeter"></i></div>
             </div>
+
             <div class="progress-block">
               <div class="progress-meta">
                 <span>Accuracy</span>
@@ -98,6 +101,7 @@
               </div>
               <div class="meter"><i id="accMeter"></i></div>
             </div>
+
             <div class="panel-actions">
               <button id="tutorialBtn" class="action-btn ghost">Tutorial</button>
               <button id="trainBtn" class="action-btn primary">Train</button>
@@ -123,6 +127,7 @@
           <h2>Tutorial</h2>
           <button class="close-btn" data-close="tutorialModal">×</button>
         </div>
+
         <div class="tutorial-steps">
           <div class="step">
             <strong>1. Drag to aim</strong>
@@ -141,6 +146,7 @@
             <span>Finish the course, earn coins, and climb the leaderboard.</span>
           </div>
         </div>
+
         <div class="modal-footer">
           <button data-close="tutorialModal" class="action-btn primary">Close</button>
         </div>
@@ -178,7 +184,7 @@
     </div>
 
     <script src="js/audio.js"></script>
-    <script src="js/game.js"></script>
     <script src="js/ui.js"></script>
+    <script src="js/game.js"></script>
   </body>
 </html>
