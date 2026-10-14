@@ -1,1277 +1,883 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Perfect Orbit Golf</title>
-  <style>
-    :root{
-      --bg:#06141e;
-      --bg2:#0b1d2a;
-      --panel:#0f1f2b;
-      --panel2:#162838;
-      --primary:#79e7ff;
-      --primary2:#7c9cff;
-      --gold:#ffd166;
-      --green:#5fe6a7;
-      --green2:#3bb273;
-      --danger:#ff6a6a;
-      --text:#eaf8ff;
-      --muted:#a0bccd;
-      --shadow:rgba(0,0,0,0.35);
-    }
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Perfect Orbit — Golf Trainer</title>
+<style>
+  :root{
+    --bg-1:#061018;
+    --bg-2:#04131a;
+    --glass: rgba(255,255,255,0.04);
+    --card: rgba(255,255,255,0.03);
+    --neon-1: #6ee7ff;
+    --neon-2: #8b5cf6;
+    --accent: linear-gradient(90deg,#6ee7ff,#8b5cf6);
+    --muted:#95a6b3;
+    --good:#6ee7a8;
+    --danger:#ff7b7b;
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  }
 
-    * { box-sizing:border-box; }
-    html,body{
-      margin:0; height:100%;
-      font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
-      background: radial-gradient(circle at top, #0d2437 0%, var(--bg) 42%, #040d14 100%);
-      color:var(--text);
-      overflow:hidden;
-    }
+  html,body{height:100%;margin:0;background:radial-gradient(900px 500px at 10% 10%, #072433 0%, var(--bg-1) 30%, var(--bg-2) 100%);color:#e7f6fb}
+  .wrap{height:100%;display:flex;align-items:center;justify-content:center;padding:18px;box-sizing:border-box}
+  .app{
+    width:min(1180px,98%); height:min(760px,96%); border-radius:18px; overflow:hidden;
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    border:1px solid rgba(255,255,255,0.03);
+    box-shadow: 0 30px 80px rgba(4,10,18,0.7);
+    display:grid; grid-template-columns: 1fr 320px; gap:18px; padding:16px;
+  }
 
-    body{
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      padding:16px;
-    }
+  /* Left: orbit canvas area */
+  .stage{
+    position:relative; border-radius:12px; overflow:hidden; background:
+    radial-gradient(600px 300px at 20% 10%, rgba(110,231,255,0.03), transparent 5%),
+    linear-gradient(180deg,#081824 0%, #032028 100%);
+    display:flex; align-items:center; justify-content:center;
+  }
 
-    .app{
-      width:min(1500px, 100%);
-      height:min(920px, 100%);
-      background:linear-gradient(180deg, rgba(18,30,41,0.96), rgba(9,18,24,0.98));
-      border:1px solid rgba(255,255,255,0.07);
-      border-radius:20px;
-      box-shadow:0 20px 60px rgba(0,0,0,0.45);
-      overflow:hidden;
-      position:relative;
-    }
+  canvas{width:100%;height:100%; display:block}
 
-    .topbar{
-      height:78px;
-      padding:16px 18px;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      border-bottom:1px solid rgba(255,255,255,0.06);
-      background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.00));
-    }
+  /* HUD around orbit */
+  .hud{
+    position:absolute; inset:16px; pointer-events:none; display:flex; justify-content:space-between; align-items:flex-start;
+  }
+  .hud-left, .hud-right{
+    pointer-events:all; display:flex; gap:10px; flex-direction:column;
+  }
+  .brand{display:flex;align-items:center;gap:12px}
+  .logo{
+    width:46px;height:46px;border-radius:12px;background:var(--neon-1);
+    background: linear-gradient(135deg,var(--neon-1),var(--neon-2));
+    display:grid;place-items:center;color:#042028;font-weight:800;font-size:18px;box-shadow:0 10px 40px rgba(107,84,255,0.14)
+  }
+  .title{
+    font-weight:700;font-size:18px;line-height:1;color:#eafcff;
+  }
+  .subtitle{font-size:12px;color:var(--muted);margin-top:-2px}
 
-    .brand{
-      display:flex;align-items:center;gap:14px;
-    }
+  .pill{
+    background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    border-radius:10px;padding:10px 12px;border:1px solid rgba(255,255,255,0.03);box-shadow:0 6px 20px rgba(2,6,11,0.6);
+    display:flex;flex-direction:column;gap:4px;min-width:110px;
+  }
+  .pill .label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em}
+  .pill .value{font-weight:800;font-size:16px;color:#e7f6fb}
 
-    .logo{
-      width:42px;height:42px;border-radius:12px;display:grid;place-items:center;
-      background:linear-gradient(135deg,var(--primary),var(--primary2));
-      color:#02151b; font-weight:800; font-size:20px;
-      box-shadow:0 8px 22px rgba(121,231,255,0.35);
-    }
+  /* radial control bottom center */
+  .radial-ui{
+    position:absolute; left:50%; transform:translateX(-50%); bottom:22px; pointer-events:all;
+    display:flex;align-items:center;gap:12px;
+    background: linear-gradient(180deg, rgba(12,24,32,0.6), rgba(6,12,18,0.6));
+    padding:10px;border-radius:18px;border:1px solid rgba(255,255,255,0.03);
+    box-shadow: 0 12px 30px rgba(2,8,10,0.6);
+  }
+  .radial {
+    width:160px;height:160px;border-radius:50%;display:grid;place-items:center;position:relative;
+    background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.02), rgba(0,0,0,0.02));
+    border:1px solid rgba(255,255,255,0.04);
+    box-shadow: 0 18px 60px rgba(14,32,40,0.6), inset 0 2px 20px rgba(110,231,255,0.02);
+  }
+  .radial .center{
+    width:88px;height:88px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.04));
+    border:1px solid rgba(255,255,255,0.03);
+  }
+  .shoot-btn{
+    pointer-events:all;border-radius:999px;padding:10px 16px;border:none;font-weight:800;background:linear-gradient(90deg,var(--neon-1),var(--neon-2));color:#042028;cursor:pointer;
+    box-shadow:0 18px 30px rgba(107,84,255,0.16);
+  }
+  .hint{color:var(--muted);font-size:13px;text-align:center;margin-top:6px}
 
-    .title-wrap{
-      line-height:1.1;
-    }
-    .title{
-      font-weight:700;font-size:20px;
-      letter-spacing:0.02em;
-    }
-    .subtitle{
-      color:var(--muted); font-size:12px; letter-spacing:0.06em; text-transform:uppercase;
-    }
+  /* right side */
+  .sidebar{display:flex;flex-direction:column;gap:12px;height:100%}
+  .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:12px;padding:12px;border:1px solid rgba(255,255,255,0.03);box-shadow:0 12px 30px rgba(0,0,0,0.45)}
+  .card .title{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.12em;margin-bottom:10px}
+  .skin-row{display:flex;gap:8px;flex-wrap:wrap}
+  .skin-item{
+    width:72px;height:72px;border-radius:10px;background:linear-gradient(180deg,#0b2532,#07212a);display:grid;place-items:center;cursor:pointer;
+    border:1px solid rgba(255,255,255,0.02);
+    transition:transform .16s, box-shadow .16s;
+  }
+  .skin-item:hover{transform:translateY(-6px);box-shadow:0 16px 40px rgba(2,6,11,0.6)}
+  .skin-item.selected{outline:3px solid rgba(110,231,255,0.12);box-shadow:0 18px 60px rgba(110,231,255,0.05)}
 
-    .topstats{
-      display:flex; align-items:center; gap:12px; flex-wrap:wrap;
-      justify-content:flex-end;
-    }
+  .meter{height:10px;background:rgba(255,255,255,0.04);border-radius:999px;overflow:hidden}
+  .meter > i{display:block;height:100%;background:linear-gradient(90deg,#6ee7ff,#8b5cf6);width:0%}
 
-    .stat-pill{
-      background:rgba(255,255,255,0.025);
-      border:1px solid rgba(255,255,255,0.05);
-      border-radius:10px;
-      padding:8px 10px;
-      min-width:96px;
-      text-align:center;
-    }
+  .controls{display:flex;gap:8px;margin-top:10px}
+  .btn{flex:1;padding:10px;border-radius:10px;border:none;cursor:pointer;font-weight:700}
+  .btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--muted)}
+  .btn.primary{background:linear-gradient(90deg,#6ee7ff,#8b5cf6);color:#042028}
 
-    .stat-label{
-      display:block;font-size:10px;letter-spacing:0.1em;color:var(--muted);text-transform:uppercase;
-    }
-    .stat-value{
-      display:block;font-size:18px;font-weight:700;margin-top:2px;
-    }
+  /* tutorial & modal */
+  .overlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:linear-gradient(0deg, rgba(0,0,0,0.5), rgba(0,0,0,0.48));z-index:60}
+  .overlay.open{display:flex}
+  .modal{width:min(820px,94%);background:linear-gradient(180deg,#03151a,#071a21);border-radius:12px;padding:16px;border:1px solid rgba(255,255,255,0.04)}
+  .modal h2{margin:0 0 8px 0}
+  .modal p{color:var(--muted);margin:0 0 12px 0}
 
-    .main{
-      display:flex;
-      height:calc(100% - 78px);
-    }
-
-    .course-panel{
-      flex:1; position:relative; background:linear-gradient(180deg,#0a1d29,#08232d);
-      border-right:1px solid rgba(255,255,255,0.05);
-    }
-
-    .hud-overlay{
-      position:absolute; left:18px; top:18px; right:18px; display:flex;justify-content:space-between; pointer-events:none;
-      z-index:3;
-    }
-
-    .left-hud, .right-hud{
-      display:flex; gap:10px; flex-wrap:wrap; pointer-events:auto;
-    }
-
-    .chip{
-      border-radius:10px;
-      padding:10px 12px;
-      background:rgba(5,17,24,0.42);
-      border:1px solid rgba(255,255,255,0.07);
-      box-shadow:0 8px 22px rgba(0,0,0,0.2);
-      backdrop-filter: blur(5px);
-      font-size:13px;
-      color:var(--muted);
-    }
-    .chip strong{ color:var(--text); }
-
-    canvas{
-      display:block;
-      width:100%;
-      height:100%;
-      cursor:crosshair;
-      background:linear-gradient(180deg,#bddcff 0%,#9fd1ff 18%,#7ab9d5 35%,#5ab08d 47%,#3d9f61 58%,#2b8a4f 72%,#226f3e 100%);
-    }
-
-    .side-panel{
-      width:330px;
-      background:linear-gradient(180deg, rgba(17,29,39,0.9), rgba(8,17,23,0.95));
-      padding:16px;
-      display:flex;
-      flex-direction:column;
-      gap:14px;
-    }
-
-    .card{
-      background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
-      border:1px solid rgba(255,255,255,0.06);
-      border-radius:16px;
-      padding:14px;
-    }
-
-    .card-title{
-      font-size:11px; text-transform:uppercase; letter-spacing:0.12em; color:var(--muted);
-      margin-bottom:12px; font-weight:700;
-    }
-
-    .skin-grid{
-      display:grid; grid-template-columns:repeat(4, 1fr); gap:10px;
-    }
-
-    .skin{
-      height:58px; border-radius:12px; display:flex;align-items:center;justify-content:center;
-      border:2px solid transparent; position:relative; overflow:hidden; cursor:pointer; transition:0.2s ease;
-      background:linear-gradient(180deg, #67d9ff, #6e7ef0);
-    }
-    .skin:hover{ transform:translateY(-1px); }
-    .skin.selected{
-      border-color:#ffffff;
-      box-shadow:0 0 0 2px rgba(255,255,255,0.18);
-    }
-    .skin .guy{
-      width:24px; height:28px; position:relative;
-    }
-    .skin .head{ width:12px;height:12px;border-radius:50%; background:#f2d8c2; position:absolute; top:0; left:6px; }
-    .skin .body{ width:18px;height:15px; border-radius:6px; position:absolute; left:3px; top:12px; background: #3b82f6; }
-    .skin .hat{ width:18px;height:6px;border-radius:5px 5px 3px 3px; position:absolute; left:3px; top:-1px; background:#91e9ff;}
-    .skin .club{ position:absolute; width:18px;height:3px; background:#dfe7ee; border-radius:4px; left:13px; top:17px; transform:rotate(20deg); }
-
-    .training-box{ display:flex; flex-direction:column; gap:10px; }
-    .meter{
-      height:10px; width:100%; background:rgba(255,255,255,0.06); border-radius:999px; overflow:hidden; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03);
-    }
-    .meter > span{
-      display:block;height:100%; width:0%;
-      border-radius:999px;
-      background:linear-gradient(90deg,var(--primary),var(--green));
-      box-shadow:0 0 16px rgba(121,231,255,0.45);
-    }
-
-    .row{
-      display:flex;align-items:center;justify-content:space-between; gap:10px;
-    }
-    .small{
-      color:var(--muted); font-size:12px;
-    }
-
-    .btn{
-      border:none; border-radius:12px; padding:11px 14px; font-weight:700; cursor:pointer;
-      transition:0.18s all ease;
-    }
-    .btn:hover{ transform:translateY(-1px); }
-    .btn.primary{
-      background:linear-gradient(135deg,var(--primary),var(--primary2));
-      color:#02151b;
-      box-shadow:0 12px 26px rgba(121,231,255,0.20);
-    }
-    .btn.secondary{
-      background:linear-gradient(180deg,#172f41,#122734);
-      border:1px solid rgba(255,255,255,0.07);
-      color:var(--text);
-    }
-
-    .setup-grid{
-      display:grid;grid-template-columns:1fr 1fr; gap:10px;
-    }
-
-    .mini-box{
-      background:rgba(255,255,255,0.015);
-      border:1px solid rgba(255,255,255,0.05);
-      border-radius:12px; padding:10px;
-    }
-
-    .toggle{
-      display:flex; justify-content:space-between; align-items:center; gap:8px;
-    }
-
-    .switch{
-      position:relative;width:46px;height:26px;border-radius:999px;background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.06);
-    }
-    .switch::after{
-      content:""; position:absolute; width:18px;height:18px; border-radius:50%; background:#dfeaf1;
-      top:3px; left:4px; transition:0.25s ease;
-      box-shadow:0 6px 14px rgba(0,0,0,0.25);
-    }
-    .switch.on{
-      background:linear-gradient(135deg,var(--primary),var(--green));
-    }
-    .switch.on::after{ left:22px; background:#0a1d21; }
-
-    .modal{
-      position:absolute; inset:0; display:none; align-items:center; justify-content:center;
-      background:rgba(4,7,12,0.68); backdrop-filter: blur(4px); z-index:20;
-    }
-    .modal.open{ display:flex; }
-    .panel{
-      width:min(760px, calc(100% - 32px));
-      background:linear-gradient(180deg,#0d1d2a,#0a1823);
-      border:1px solid rgba(255,255,255,0.08);
-      border-radius:18px;
-      padding:18px 18px 14px;
-      box-shadow:0 30px 100px rgba(0,0,0,0.52);
-    }
-
-    .modal-header{
-      display:flex;justify-content:space-between;align-items:center; margin-bottom:10px;
-    }
-    .modal-title{
-      font-size:26px; font-weight:800;
-    }
-    .close-btn{
-      width:34px;height:34px;border-radius:10px;border:none; cursor:pointer;
-      background:rgba(255,255,255,0.06); color:var(--text); font-size:20px;
-    }
-
-    .tutorial-page{
-      min-height:180px; display:flex;flex-direction:column; gap:12px;
-      padding-top:6px;
-    }
-    .tutorial-step{
-      background:rgba(255,255,255,0.025);
-      border:1px solid rgba(255,255,255,0.05);
-      border-radius:12px;
-      padding:12px 14px;
-    }
-    .tutorial-step strong{
-      display:block; margin-bottom:3px; font-size:15px;
-    }
-
-    .modal-actions{
-      display:flex; justify-content:flex-end; gap:10px; margin-top:12px;
-    }
-
-    .training-layout{
-      display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:8px;
-    }
-
-    .training-card{
-      background:rgba(255,255,255,0.025);
-      border:1px solid rgba(255,255,255,0.05);
-      border-radius:14px;
-      padding:12px;
-      display:flex;flex-direction:column; gap:10px;
-    }
-
-    .training-card h4{
-      margin:0; font-size:16px;
-    }
-
-    .target-canvas{
-      border-radius:12px; background:#061822; width:100%; height:110px; display:block;
-      border:1px solid rgba(255,255,255,0.06);
-    }
-
-    .balloon{
-      display:inline-block;
-      padding:8px 10px; background:rgba(121,231,255,0.14); border:1px solid rgba(121,231,255,0.24);
-      border-radius:999px; color:#dff8ff; font-weight:700; font-size:12px;
-    }
-
-    .hidden{ display:none !important; }
-
-    @media(max-width:1100px){
-      .side-panel{ width:260px; }
-      .main{ flex-direction:column; }
-      .course-panel{ min-height:58vh; }
-      .side-panel{ width:100%; height:auto; }
-    }
-  </style>
+  /* small responsive */
+  @media(max-width:980px){
+    .app{grid-template-columns: 1fr; grid-auto-rows: auto 360px; height:auto; padding:12px}
+    .stage{height:520px}
+    .sidebar{order:2}
+  }
+</style>
 </head>
 <body>
-  <div class="app">
-    <div class="topbar">
-      <div class="brand">
-        <div class="logo">⛳</div>
-        <div class="title-wrap">
-          <div class="title">Perfect Orbit Golf</div>
-          <div class="subtitle">Train to hit it farther and straighter</div>
+<div class="wrap">
+  <div class="app" role="application" aria-label="Perfect Orbit inspired golf trainer">
+    <div class="stage" id="stage">
+      <canvas id="orbitCanvas" width="1000" height="700"></canvas>
+
+      <div class="hud" aria-hidden>
+        <div class="hud-left">
+          <div style="display:flex;align-items:center;gap:12px">
+            <div class="brand">
+              <div class="logo">⛳</div>
+              <div>
+                <div class="title">Perfect Orbit</div>
+                <div class="subtitle">Train to go farther & straighter</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:10px;margin-top:8px">
+            <div class="pill">
+              <div class="label">Power</div>
+              <div class="value" id="uiPower">1</div>
+            </div>
+            <div class="pill">
+              <div class="label">Accuracy</div>
+              <div class="value" id="uiAcc">1</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="hud-right">
+          <div class="pill">
+            <div class="label">Coins</div>
+            <div class="value" id="uiCoins">0</div>
+          </div>
+          <div class="pill">
+            <div class="label">Hole</div>
+            <div class="value" id="uiHole">1</div>
+          </div>
         </div>
       </div>
 
-      <div class="topstats">
-        <div class="stat-pill">
-          <span class="stat-label">Power</span>
-          <span class="stat-value" id="powerDisplay">1</span>
+      <div class="radial-ui" aria-hidden>
+        <div style="text-align:center;width:220px;color:var(--muted)">
+          <div style="font-weight:700">Drag from the ball to aim</div>
+          <div class="hint">Longer drag = more power. Train to increase stats.</div>
         </div>
-        <div class="stat-pill">
-          <span class="stat-label">Accuracy</span>
-          <span class="stat-value" id="accuracyDisplay">1</span>
+
+        <div class="radial" id="radial">
+          <svg width="160" height="160" viewBox="0 0 160 160" style="position:absolute;left:0;top:0;pointer-events:none">
+            <defs>
+              <linearGradient id="g1" x1="0" x2="1">
+                <stop offset="0" stop-color="#6ee7ff" stop-opacity="0.95"/>
+                <stop offset="1" stop-color="#8b5cf6" stop-opacity="0.95"/>
+              </linearGradient>
+              <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="8" result="coloredBlur"/>
+                <feMerge>
+                  <feMergeNode in="coloredBlur"/>
+                  <feMergeNode in="SourceGraphic"/>
+                </feMerge>
+              </filter>
+            </defs>
+            <circle cx="80" cy="80" r="68" stroke="url(#g1)" stroke-width="3" fill="rgba(255,255,255,0.01)"></circle>
+            <circle cx="80" cy="80" r="52" stroke="rgba(255,255,255,0.04)" stroke-width="1" fill="none"></circle>
+            <!-- power arc (drawn by JS) -->
+          </svg>
+          <div class="center">
+            <button class="shoot-btn" id="shootBtn">Shoot</button>
+          </div>
         </div>
-        <div class="stat-pill">
-          <span class="stat-label">Coins</span>
-          <span class="stat-value" id="coinsDisplay">0</span>
+
+        <div style="width:180px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="flex:1">
+              <div style="font-size:12px;color:var(--muted)">Distance</div>
+              <div style="font-weight:800" id="uiDistance">300m</div>
+            </div>
+            <div style="flex:1">
+              <div style="font-size:12px;color:var(--muted)">Wind</div>
+              <div style="font-weight:800" id="uiWind">0</div>
+            </div>
+          </div>
         </div>
       </div>
+
     </div>
 
-    <div class="main">
-      <div class="course-panel">
-        <div class="hud-overlay">
-          <div class="left-hud">
-            <div class="chip"><strong id="holeLabel">Hole 1</strong></div>
-            <div class="chip">Par <strong id="parDisplay">3</strong></div>
-            <div class="chip">Distance <strong id="distanceDisplay">300m</strong></div>
-          </div>
-
-          <div class="right-hud">
-            <div class="chip">Wind <strong id="windDisplay">0</strong></div>
-            <div class="chip">Strokes <strong id="strokesDisplay">0</strong></div>
-          </div>
-        </div>
-
-        <canvas id="gameCanvas" width="1400" height="760"></canvas>
+    <aside class="sidebar" aria-label="Sidebar">
+      <div class="card">
+        <div class="title">Golfer Skins</div>
+        <div class="skin-row" id="skinRow"></div>
       </div>
 
-      <div class="side-panel">
-        <div class="card">
-          <div class="card-title">Golfer Skins</div>
-          <div class="skin-grid" id="skinGrid"></div>
-        </div>
-
-        <div class="card">
-          <div class="card-title">Training</div>
-          <div class="training-box">
-            <div>
-              <div class="row">
-                <span class="small">Power</span>
-                <span class="small"><strong id="powerMeterLabel">0%</strong></span>
-              </div>
-              <div class="meter"><span id="powerMeter"></span></div>
+      <div class="card">
+        <div class="title">Training</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div>
+            <div style="display:flex;justify-content:space-between">
+              <div class="small">Power</div><div id="meterPowerText" class="small" style="color:var(--muted)">0%</div>
             </div>
+            <div class="meter"><i id="meterPower" style="width:0%"></i></div>
+          </div>
 
-            <div>
-              <div class="row">
-                <span class="small">Accuracy</span>
-                <span class="small"><strong id="accuracyMeterLabel">0%</strong></span>
-              </div>
-              <div class="meter"><span id="accuracyMeter"></span></div>
+          <div>
+            <div style="display:flex;justify-content:space-between">
+              <div class="small">Accuracy</div><div id="meterAccText" class="small" style="color:var(--muted)">0%</div>
             </div>
+            <div class="meter"><i id="meterAcc" style="width:0%"></i></div>
+          </div>
 
+          <div class="controls">
+            <button class="btn ghost" id="tutorialBtn">Tutorial</button>
             <button class="btn primary" id="trainBtn">Train</button>
-            <button class="btn secondary" id="tutorialBtn">Tutorial</button>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-title">Course Setup</div>
-          <div class="setup-grid">
-            <div class="mini-box">
-              <div class="small">Difficulty</div>
-              <div class="row" style="margin-top:8px;">
-                <select id="difficulty" style="flex:1; background:rgba(255,255,255,0.02); color:var(--text); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:8px;">
-                  <option value="1">Casual</option>
-                  <option value="1.2">Normal</option>
-                  <option value="1.5">Hard</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="mini-box">
-              <div class="small">Next Hole</div>
-              <div class="row" style="margin-top:8px;">
-                <button class="btn secondary" id="nextHoleBtn" style="width:100%;">Continue</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="toggle" style="margin-top:12px;">
-            <div class="small">Assist Aim</div>
-            <div class="switch on" id="aimAssistToggle" title="Toggle aim assist"></div>
           </div>
         </div>
       </div>
+
+      <div class="card">
+        <div class="title">Course</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;justify-content:space-between">
+            <div class="small">Hole</div><div id="courseHole" class="small">1</div>
+          </div>
+          <div style="display:flex;justify-content:space-between">
+            <div class="small">Par</div><div id="coursePar" class="small">3</div>
+          </div>
+          <div style="display:flex;justify-content:space-between">
+            <div class="small">Distance</div><div id="courseDist" class="small">300m</div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:6px">
+            <button class="btn ghost" id="prevHole">Prev</button>
+            <button class="btn primary" id="nextHole">Next</button>
+          </div>
+        </div>
+      </div>
+
+    </aside>
+  </div>
+</div>
+
+<!-- Tutorial modal -->
+<div class="overlay" id="overlayTutorial" role="dialog" aria-modal="true" aria-hidden="true">
+  <div class="modal">
+    <h2>Tutorial — Perfect Orbit Style</h2>
+    <p>This version uses an orbit-style course: aim by dragging from the ball, release to shoot. Train to increase Power and Accuracy — higher Power = farther, higher Accuracy = less deviation.</p>
+    <p>Skins are cosmetic. Coins are awarded for good shots and finishing holes. Open Train to run drills.</p>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px">
+      <button class="btn ghost" id="closeTut">Close</button>
     </div>
   </div>
+</div>
 
-  <div class="modal" id="tutorialModal">
-    <div class="panel">
-      <div class="modal-header">
-        <div class="modal-title">Tutorial</div>
-        <button class="close-btn" id="closeTutorialBtn">×</button>
-      </div>
+<!-- Training modal -->
+<div class="overlay" id="overlayTrain" aria-hidden="true">
+  <div class="modal">
+    <h2>Training Lab</h2>
+    <p>Two drills to improve your stats. Power: tap fast. Accuracy: click the timing target.</p>
 
-      <div class="tutorial-page" id="tutorialPage">
-        <div class="tutorial-step">
-          <strong>1. Aim your shot</strong>
-          <div class="small">Click and drag from the ball to set direction and power. Longer drag = more power.</div>
-        </div>
-        <div class="tutorial-step">
-          <strong>2. Train to improve</strong>
-          <div class="small">Use the <span class="balloon">Train</span> button to upgrade your power and accuracy. Training is how you hit farther and straighter.</div>
-        </div>
-        <div class="tutorial-step">
-          <strong>3. Choose your golfer skin</strong>
-          <div class="small">Pick a skin from the right panel. Different looks for your golfer.</div>
-        </div>
-        <div class="tutorial-step">
-          <strong>4. Finish each hole</strong>
-          <div class="small">Take fewer strokes to earn more coins and improve your course performance.</div>
+    <div style="display:flex;gap:12px;margin-top:10px">
+      <div style="flex:1">
+        <h4 style="margin:0 0 8px 0">Power Drill</h4>
+        <p style="margin:0;color:var(--muted)">Tap the button as fast as you can for 3 seconds — speed converts to power gain.</p>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="btn primary" id="startPower">Start</button>
+          <div style="align-self:center;color:var(--muted)">Taps: <span id="tapCount">0</span></div>
         </div>
       </div>
 
-      <div class="modal-actions">
-        <button class="btn secondary" id="tutorialBackBtn">Back</button>
-        <button class="btn primary" id="tutorialNextBtn">Next</button>
+      <div style="flex:1">
+        <h4 style="margin:0 0 8px 0">Accuracy Drill</h4>
+        <p style="margin:0;color:var(--muted)">Click the moving marker as close to the center target as possible.</p>
+        <canvas id="trainTarget" width="320" height="88" style="margin-top:8px;border-radius:8px;background:#031a20;border:1px solid rgba(255,255,255,0.03)"></canvas>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="btn ghost" id="startAcc">Start</button>
+          <div style="align-self:center;color:var(--muted)">Result: <span id="accResult">—</span></div>
+        </div>
       </div>
     </div>
-  </div>
 
-  <div class="modal" id="trainingModal">
-    <div class="panel">
-      <div class="modal-header">
-        <div class="modal-title">Training Lab</div>
-        <button class="close-btn" id="closeTrainingBtn">×</button>
-      </div>
-
-      <div class="training-layout">
-        <div class="training-card">
-          <h4>Power Drill</h4>
-          <div class="small">Tap the button as fast as you can for 3 seconds.</div>
-          <button class="btn primary" id="powerDrillBtn">Start Power Drill</button>
-          <div class="small">Taps: <strong id="powerDrillCount">0</strong></div>
-        </div>
-
-        <div class="training-card">
-          <h4>Accuracy Drill</h4>
-          <div class="small">Click the target as close to center as possible.</div>
-          <canvas id="accuracyCanvas" class="target-canvas" width="300" height="120"></canvas>
-          <button class="btn secondary" id="accuracyDrillBtn">Start Accuracy Drill</button>
-        </div>
-      </div>
-
-      <div class="modal-actions">
-        <button class="btn primary" id="closeTrainingDoneBtn">Done</button>
-      </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px">
+      <button class="btn ghost" id="closeTrainModal">Close</button>
     </div>
   </div>
+</div>
 
-  <script>
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
+<script>
+/*
+  Perfect Orbit - Themed Golf Trainer (single-file)
+  - Orbit-style, neon aesthetic
+  - Radial power UI, orbit particles, animated goal/hole
+  - Train drills and tutorial
+  - Skins, progress saved to localStorage
+*/
 
-    const state = {
-      powerLevel: 1,
-      accuracy: 1,
-      coins: 0,
-      skin: 0,
-      holeIndex: 0,
-      strokes: 0,
-      difficulty: 1,
-      assist: true,
-      tutorialIndex: 0,
-      tutorialShowing: true,
-      totalScore: 0
-    };
+const canvas = document.getElementById('orbitCanvas');
+const ctx = canvas.getContext('2d');
+let W = canvas.width, H = canvas.height;
 
-    const skins = [
-      { name: 'Sky', body:'#76d9ff', hat:'#9be9ff', accent:'#7e8fff' },
-      { name: 'Emerald', body:'#4ade80', hat:'#8bf0b3', accent:'#22c55e' },
-      { name: 'Sunset', body:'#fb7185', hat:'#fdba74', accent:'#f97316' },
-      { name: 'Gold', body:'#fbbf24', hat:'#fef3c7', accent:'#f59e0b' }
-    ];
+function fitCanvas(){
+  const rect = document.getElementById('stage').getBoundingClientRect();
+  canvas.width = Math.max(720, Math.floor(rect.width));
+  canvas.height = Math.max(420, Math.floor(rect.height));
+  W = canvas.width; H = canvas.height;
+}
+window.addEventListener('resize', () => { fitCanvas(); layoutInit(); });
 
-    const courses = [
-      { name: 'Pebble Vale', distance: 280, par: 3, wind: 0, rough: 0.08 },
-      { name: 'Cinder Ridge', distance: 360, par: 4, wind: 2, rough: 0.12 },
-      { name: 'Glacier Run', distance: 440, par: 5, wind: 4, rough: 0.16 },
-      { name: 'Summit Point', distance: 520, par: 5, wind: 5, rough: 0.2 }
-    ];
+fitCanvas();
 
-    const player = {
-      x: 120,
-      y: 0,
-      radius: 12,
-      ball: { x: 160, y: 0, r: 9, vx:0, vy:0, moving:false, inWater:false, inSand:false }
-    };
+/* persistent state */
+const DEFAULT = { power:1, acc:1, coins:0, skin:0, hole:1 };
+let S = loadState();
 
-    let aimStart = null;
-    let aimEnd = null;
-    let aiming = false;
+/* UI elements */
+const uiPower = document.getElementById('uiPower');
+const uiAcc = document.getElementById('uiAcc');
+const uiCoins = document.getElementById('uiCoins');
+const uiHole = document.getElementById('uiHole');
+const uiDistance = document.getElementById('uiDistance');
+const uiWind = document.getElementById('uiWind');
+const meterPower = document.getElementById('meterPower');
+const meterAcc = document.getElementById('meterAcc');
+const meterPowerText = document.getElementById('meterPowerText');
+const meterAccText = document.getElementById('meterAccText');
 
-    const holeLabel = document.getElementById('holeLabel');
-    const parDisplay = document.getElementById('parDisplay');
-    const distanceDisplay = document.getElementById('distanceDisplay');
-    const windDisplay = document.getElementById('windDisplay');
-    const strokesDisplay = document.getElementById('strokesDisplay');
-    const powerDisplay = document.getElementById('powerDisplay');
-    const accuracyDisplay = document.getElementById('accuracyDisplay');
-    const coinsDisplay = document.getElementById('coinsDisplay');
-    const powerMeter = document.getElementById('powerMeter');
-    const accuracyMeter = document.getElementById('accuracyMeter');
-    const powerMeterLabel = document.getElementById('powerMeterLabel');
-    const accuracyMeterLabel = document.getElementById('accuracyMeterLabel');
-    const tutorialModal = document.getElementById('tutorialModal');
-    const trainingModal = document.getElementById('trainingModal');
+const overlayTutorial = document.getElementById('overlayTutorial');
+const overlayTrain = document.getElementById('overlayTrain');
 
-    function loadState(){
-      try{
-        const saved = JSON.parse(localStorage.getItem('perfectOrbitGolfState'));
-        if(saved){
-          Object.assign(state, saved);
+const skins = [
+  {name:'Cerulean', body:'#67e8f9', hat:'#60a5fa', accent:'#8b5cf6'},
+  {name:'Emerald', body:'#34d399', hat:'#10b981', accent:'#60f5df'},
+  {name:'Sunset', body:'#fb7185', hat:'#fb923c', accent:'#f59e0b'},
+  {name:'Violet', body:'#c084fc', hat:'#8b5cf6', accent:'#7c3aed'}
+];
+
+const holes = [
+  {dist:300, par:3, wind:0},
+  {dist:360, par:4, wind:1},
+  {dist:420, par:4, wind:2},
+  {dist:500, par:5, wind:3}
+];
+
+let orbit = {}; // runtime orbit layout
+let player = {};
+let ball = {};
+let aiming=false, aimStart=null, aimEnd=null;
+let particles=[];
+
+/* setup initial layout */
+function layoutInit(){
+  fitCanvas();
+  orbit.cx = W * 0.55;
+  orbit.cy = H * 0.45;
+  orbit.radius = Math.min(W,H) * 0.32;
+  orbit.holeRadius = 14;
+  orbit.holeX = orbit.cx + orbit.radius;
+  orbit.holeY = orbit.cy;
+  // player position near left of orbit
+  player.x = orbit.cx - orbit.radius + 18;
+  player.y = orbit.cy - 6;
+  resetBall();
+  initParticles();
+  updateUI();
+}
+
+function resetBall(){
+  ball.x = player.x + 28;
+  ball.y = player.y - 6;
+  ball.r = 9;
+  ball.vx = 0; ball.vy = 0;
+  ball.moving = false;
+}
+
+function initParticles(){
+  particles = [];
+  for(let i=0;i<40;i++){
+    particles.push({
+      a: Math.random()*Math.PI*2,
+      r: orbit.radius * (0.6 + Math.random()*0.45),
+      speed: (0.0008 + Math.random()*0.0018) * (Math.random() < 0.5 ? 1 : -1),
+      col: i%6===0 ? 'rgba(255,255,255,0.06)' : 'rgba(110,231,255,0.04)'
+    });
+  }
+}
+
+/* input handling for aiming */
+const stage = document.getElementById('stage');
+stage.addEventListener('pointerdown', (e)=>{ const p=toCanvas(e); const d=Math.hypot(p.x-ball.x,p.y-ball.y); if(!ball.moving && d<90){ aiming=true; aimStart=p; aimEnd=p; }});
+stage.addEventListener('pointermove', (e)=>{ if(!aiming) return; aimEnd = toCanvas(e); });
+window.addEventListener('pointerup', (e)=>{ if(!aiming) return; aiming=false; shootFromDrag(); });
+
+function toCanvas(ev){
+  const r = canvas.getBoundingClientRect();
+  return {
+    x: (ev.clientX - r.left) * (canvas.width / r.width),
+    y: (ev.clientY - r.top) * (canvas.height / r.height)
+  };
+}
+
+/* skins UI */
+const skinRow = document.getElementById('skinRow');
+function buildSkins(){
+  skinRow.innerHTML = '';
+  skins.forEach((s,i)=>{
+    const d = document.createElement('div');
+    d.className = 'skin-item' + (i===S.skin ? ' selected' : '');
+    d.title = s.name;
+    d.innerHTML = `
+      <svg width="48" height="48" viewBox="0 0 48 48">
+        <defs><linearGradient id="g${i}" x1="0" x2="1"><stop offset="0" stop-color="${s.body}"/><stop offset="1" stop-color="${s.hat}"/></linearGradient></defs>
+        <rect rx="8" width="48" height="48" fill="url(#g${i})" />
+        <g transform="translate(8,8)">
+          <circle cx="8" cy="8" r="5" fill="#f4d6bd"></circle>
+          <rect x="4" y="13" width="12" height="10" rx="2" fill="#07121a" opacity="0.15"></rect>
+        </g>
+      </svg>
+    `;
+    d.onclick = ()=>{ S.skin = i; saveState(); updateUI(); buildSkins(); };
+    skinRow.appendChild(d);
+  });
+}
+
+/* game logic */
+function shootFromDrag(){
+  if(!aimStart || !aimEnd) return;
+  const dx = aimStart.x - aimEnd.x;
+  const dy = aimStart.y - aimEnd.y;
+  const dist = Math.hypot(dx,dy);
+  if(dist < 8){ aimStart=null; aimEnd=null; return; }
+
+  // compute base power and angle; integrate player stats
+  const base = Math.min(260, dist);
+  const powerFactor = 0.02 + S.power * 0.028;
+  const basePower = base * powerFactor;
+  const dev = (1 - Math.min(1, S.acc / 12)) * (Math.random()*0.16 - 0.08); // angle noise
+  const angle = Math.atan2(dy,dx) + dev;
+
+  ball.vx = Math.cos(angle) * basePower;
+  ball.vy = Math.sin(angle) * basePower;
+  ball.moving = true;
+
+  // brief radial glow effect (handled in draw)
+  aimStart = aimEnd = null;
+}
+
+/* particle & render loop */
+let last = 0;
+function loop(ts){
+  const dt = Math.min(40, ts - last); last = ts;
+  update(dt/16);
+  render();
+  requestAnimationFrame(loop);
+}
+
+function update(t){
+  // update particles angular position
+  particles.forEach(p => p.a += p.speed * t);
+
+  // physics: basic gravity + drag and minimal bounce
+  if(ball.moving){
+    ball.vy += 0.28 * t;
+    ball.vx *= Math.pow(0.995, t);
+    ball.vy *= Math.pow(0.998, t);
+
+    ball.x += ball.vx * t * 2;
+    ball.y += ball.vy * t * 2;
+
+    // floor check (approx orbit ground)
+    const floorY = orbit.cy + orbit.radius * 0.3;
+    if(ball.y + ball.r > floorY){
+      ball.y = floorY - ball.r;
+      if(Math.abs(ball.vy) > 1.2){
+        ball.vy *= -0.36;
+        ball.vx *= 0.9;
+      } else {
+        ball.vy = 0;
+        ball.vx *= 0.92;
+        if(Math.abs(ball.vx) < 0.22){
+          ball.vx = 0; ball.vy = 0; ball.moving = false;
+          // reward coins for distance
+          const distTravel = Math.abs(ball.x - player.x);
+          const reward = Math.max(0, Math.round(distTravel / 90));
+          S.coins += reward;
+          saveState(); updateUI();
         }
-      }catch(e){}
-      if(!state.holeIndex) state.holeIndex = 0;
+      }
     }
 
-    function saveState(){
-      localStorage.setItem('perfectOrbitGolfState', JSON.stringify({
-        powerLevel: state.powerLevel,
-        accuracy: state.accuracy,
-        coins: state.coins,
-        skin: state.skin,
-        holeIndex: state.holeIndex,
-        totalScore: state.totalScore,
-        difficulty: state.difficulty,
-        assist: state.assist
-      }));
+    // out of bounds
+    if(ball.x < -200 || ball.x > W + 200 || ball.y > H + 300){
+      // reset ball
+      resetBall();
     }
 
-    function createSkins(){
-      const skinGrid = document.getElementById('skinGrid');
-      skins.forEach((skin, index) => {
-        const div = document.createElement('div');
-        div.className = 'skin' + (index === state.skin ? ' selected' : '');
-        div.title = skin.name;
-        div.innerHTML = `
-          <div class="guy">
-            <div class="hat" style="background:${skin.hat};"></div>
-            <div class="head"></div>
-            <div class="body" style="background:${skin.body};"></div>
-            <div class="club" style="background:${skin.accent};"></div>
-          </div>
-        `;
-        div.addEventListener('click', () => {
-          state.skin = index;
-          saveState();
-          updateUI();
-        });
-        skinGrid.appendChild(div);
-      });
+    // hole detection
+    const dx = ball.x - orbit.holeX;
+    const dy = ball.y - orbit.holeY;
+    if(Math.hypot(dx,dy) < orbit.holeRadius + 6){
+      // made it!
+      const bonus = 20 + Math.round(6 * (S.power + S.acc) / 2);
+      S.coins += bonus;
+      S.hole = (S.hole % holes.length) + 1;
+      saveState(); updateUI();
+      resetBall();
+      // small celebration
+      spawnCelebration();
     }
+  }
+}
 
-    function setupEvents(){
-      const canvas = document.getElementById('gameCanvas');
-      canvas.addEventListener('pointerdown', onPointerDown);
-      canvas.addEventListener('pointermove', onPointerMove);
-      window.addEventListener('pointerup', onPointerUp);
+let celebrationParticles = [];
+function spawnCelebration(){
+  for(let i=0;i<24;i++){
+    celebrationParticles.push({
+      x: orbit.holeX,
+      y: orbit.holeY,
+      vx: (Math.random()-0.5)*6,
+      vy: (Math.random()-0.8)*6,
+      life: 60 + Math.random()*40,
+      col: i%2 ? 'rgba(110,231,255,0.95)' : 'rgba(139,92,246,0.95)'
+    });
+  }
+}
+function updateCelebration(t){
+  celebrationParticles = celebrationParticles.filter(p => p.life > 0);
+  celebrationParticles.forEach(p => {
+    p.x += p.vx * t;
+    p.y += p.vy * t;
+    p.vy += 0.14 * t;
+    p.vx *= 0.997;
+    p.vy *= 0.996;
+    p.life -= t;
+  });
+}
 
-      document.getElementById('trainBtn').addEventListener('click', openTraining);
-      document.getElementById('tutorialBtn').addEventListener('click', openTutorial);
-      document.getElementById('closeTutorialBtn').addEventListener('click', closeTutorial);
-      document.getElementById('tutorialBackBtn').addEventListener('click', prevTutorialStep);
-      document.getElementById('tutorialNextBtn').addEventListener('click', nextTutorialStep);
-      document.getElementById('closeTrainingBtn').addEventListener('click', closeTraining);
-      document.getElementById('closeTrainingDoneBtn').addEventListener('click', closeTraining);
-      document.getElementById('nextHoleBtn').addEventListener('click', nextHole);
-      document.getElementById('difficulty').addEventListener('change', (e) => {
-        state.difficulty = Number(e.target.value);
-        saveState();
-      });
+/* draw */
+let glowPulse = 0;
+function render(){
+  ctx.clearRect(0,0,W,H);
 
-      const aimToggle = document.getElementById('aimAssistToggle');
-      aimToggle.addEventListener('click', () => {
-        state.assist = !state.assist;
-        aimToggle.classList.toggle('on', state.assist);
-        saveState();
-      });
-    }
+  // background subtle gradient
+  const bg = ctx.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0,'#06202a'); bg.addColorStop(1,'#021016');
+  ctx.fillStyle = bg; ctx.fillRect(0,0,W,H);
 
-    function currentHole(){
-      return courses[state.holeIndex % courses.length];
-    }
+  // orbit background circle with glow
+  drawOrbit();
 
-    function resetBallAndPlayer(){
-      const hole = currentHole();
-      const groundY = canvas.height - 110;
+  // orbit ring particles
+  particles.forEach(p => {
+    const x = orbit.cx + Math.cos(p.a) * p.r;
+    const y = orbit.cy + Math.sin(p.a) * p.r * 0.65;
+    ctx.fillStyle = p.col;
+    ctx.beginPath();
+    ctx.arc(x,y,1.6,0,Math.PI*2); ctx.fill();
+  });
 
-      player.y = groundY - 20;
-      player.x = 160;
-      player.ball.x = player.x + 25;
-      player.ball.y = player.y - 6;
-      player.ball.r = 9;
-      player.ball.vx = 0;
-      player.ball.vy = 0;
-      player.ball.moving = false;
-      player.ball.inWater = false;
-      player.ball.inSand = false;
-    }
+  // hole
+  ctx.beginPath();
+  ctx.fillStyle = 'rgba(4,6,8,0.9)'; ctx.arc(orbit.holeX, orbit.holeY, orbit.holeRadius, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = 'rgba(255,80,90,0.98)'; ctx.beginPath(); ctx.moveTo(orbit.holeX-4,orbit.holeY-46); ctx.lineTo(orbit.holeX-4,orbit.holeY-6); ctx.strokeStyle='#ff5469'; ctx.lineWidth=2; ctx.stroke();
+  ctx.fillStyle = '#ff4b62'; ctx.beginPath(); ctx.moveTo(orbit.holeX-4, orbit.holeY-46); ctx.lineTo(orbit.holeX+18, orbit.holeY-38); ctx.lineTo(orbit.holeX-4, orbit.holeY-30); ctx.fill();
 
-    function updateCourseInfo(){
-      const hole = currentHole();
-      holeLabel.textContent = `Hole ${state.holeIndex + 1}`;
-      parDisplay.textContent = hole.par;
-      distanceDisplay.textContent = `${hole.distance}m`;
-      windDisplay.textContent = `${hole.wind > 0 ? '+' : ''}${hole.wind}`;
-      strokesDisplay.textContent = state.strokes;
-      powerDisplay.textContent = state.powerLevel;
-      accuracyDisplay.textContent = state.accuracy;
-      coinsDisplay.textContent = state.coins;
+  // player and ball
+  drawGolfer(player.x, player.y, skins[S.skin]);
+  drawBall(ball.x, ball.y, ball.r);
 
-      const powerPercent = Math.min((state.powerLevel / 12) * 100, 100);
-      const accPercent = Math.min((state.accuracy / 12) * 100, 100);
-      powerMeter.style.width = `${powerPercent}%`;
-      accuracyMeter.style.width = `${accPercent}%`;
-      powerMeterLabel.textContent = `${Math.round(powerPercent)}%`;
-      accuracyMeterLabel.textContent = `${Math.round(accPercent)}%`;
+  // aim visuals when dragging
+  if(aiming && aimStart && aimEnd){
+    drawAimOverlay();
+  }
 
-      document.getElementById('difficulty').value = String(state.difficulty);
-      document.getElementById('aimAssistToggle').classList.toggle('on', state.assist);
-    }
+  // radial power arc in SVG (we will draw a JS arc over the radial element)
+  drawRadialArc();
 
-    function updateUI(){
-      updateCourseInfo();
-      const skinGrid = document.getElementById('skinGrid');
-      Array.from(skinGrid.children).forEach((el, index) => {
-        el.classList.toggle('selected', index === state.skin);
-      });
-    }
+  // celebration particles
+  updateCelebration(1);
+  celebrationParticles.forEach(p => {
+    ctx.fillStyle = p.col;
+    ctx.beginPath(); ctx.arc(p.x,p.y,2.4,0,Math.PI*2); ctx.fill();
+  });
 
-    function nextHole(){
-      state.holeIndex = (state.holeIndex + 1) % courses.length;
-      state.strokes = 0;
-      resetBallAndPlayer();
-      saveState();
-      updateUI();
-    }
+  // subtle HUD glow pulse
+  glowPulse += 0.02;
+  requestAnimationFrame(()=>{});
+}
 
+/* draw helpers */
+function drawOrbit(){
+  // big soft glow
+  const g = ctx.createRadialGradient(orbit.cx, orbit.cy, 8, orbit.cx, orbit.cy, orbit.radius*1.6);
+  g.addColorStop(0, 'rgba(110,231,255,0.06)');
+  g.addColorStop(0.35, 'rgba(139,92,246,0.03)');
+  g.addColorStop(1, 'rgba(0,0,0,0.0)');
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(orbit.cx, orbit.cy, orbit.radius*1.6, 0, Math.PI*2); ctx.fill();
+
+  // fairway ellipse
+  ctx.fillStyle = '#083b24';
+  ctx.beginPath();
+  ctx.ellipse(orbit.cx, orbit.cy + orbit.radius * 0.28, orbit.radius * 1.05, orbit.radius * 0.38, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // inner green ring (subtle)
+  ctx.strokeStyle = 'rgba(255,255,255,0.02)';
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.ellipse(orbit.cx, orbit.cy, orbit.radius*0.98, orbit.radius*0.58, 0, 0, Math.PI*2); ctx.stroke();
+}
+
+function drawGolfer(x,y,skin){
+  // simple stylized golfer
+  ctx.save();
+  ctx.translate(x,y);
+  ctx.fillStyle = skin.body; ctx.beginPath(); ctx.ellipse(0,0,16,18,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#f1d6bc'; ctx.beginPath(); ctx.arc(0,-20,9,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle = skin.hat; ctx.fillRect(-12,-31,24,6);
+  ctx.fillStyle = skin.accent; ctx.fillRect(18,-25,6,2);
+  // club
+  ctx.strokeStyle = 'rgba(200,220,230,0.85)'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(8,-4); ctx.lineTo(34,-18); ctx.stroke();
+  ctx.restore();
+}
+
+function drawBall(x,y,r){
+  // shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.18)';
+  ctx.beginPath(); ctx.ellipse(x+2, y + r + 6, r+6, r*0.65, 0, 0, Math.PI*2); ctx.fill();
+  // ball
+  ctx.fillStyle = '#f8fbff'; ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle = '#c2d6df'; ctx.lineWidth = 1; ctx.stroke();
+}
+
+function drawAimOverlay(){
+  const dx = aimStart.x - aimEnd.x;
+  const dy = aimStart.y - aimEnd.y;
+  const len = Math.min(260, Math.hypot(dx,dy));
+  const ang = Math.atan2(dy,dx);
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.setLineDash([6,8]); ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(ball.x, ball.y); ctx.lineTo(ball.x + Math.cos(ang) * (40 + len*0.36), ball.y + Math.sin(ang) * (40 + len*0.36)); ctx.stroke();
+  ctx.restore();
+}
+
+/* radial arc drawing (power preview) */
+function drawRadialArc(){
+  const radial = document.querySelector('.radial svg');
+  const svgRect = radial.getBoundingClientRect();
+  // compute current power preview if aiming
+  const ctx2 = radial; // we will overlay an SVG arc by manipulating DOM below
+  // We'll create/update a path element for the arc
+  let arc = radial.querySelector('#powerArc');
+  if(!arc){
+    arc = document.createElementNS('http://www.w3.org/2000/svg','path');
+    arc.setAttribute('id','powerArc');
+    arc.setAttribute('fill','none');
+    arc.setAttribute('stroke','url(#g1)');
+    arc.setAttribute('stroke-width','6');
+    arc.setAttribute('stroke-linecap','round');
+    arc.setAttribute('filter','url(#glow)');
+    radial.appendChild(arc);
+  }
+  // compute percent
+  let pct = 0;
+  if(aiming && aimStart && aimEnd){
+    const dx = aimStart.x - aimEnd.x;
+    const dy = aimStart.y - aimEnd.y;
+    const len = Math.min(260, Math.hypot(dx,dy));
+    pct = Math.min(1, len/260);
+  }
+  // convert pct to arc from -120deg to 120deg
+  const startDeg = -120; const endDeg = startDeg + pct * 240;
+  const r = 68;
+  const cx = 80, cy = 80;
+  if(pct <= 0.002) {
+    arc.setAttribute('d','');
+  } else {
+    const a1 = (startDeg) * Math.PI/180;
+    const a2 = (endDeg) * Math.PI/180;
+    const x1 = cx + r*Math.cos(a1), y1 = cy + r*Math.sin(a1);
+    const x2 = cx + r*Math.cos(a2), y2 = cy + r*Math.sin(a2);
+    const large = (a2 - a1) > Math.PI ? 1 : 0;
+    const d = `M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2}`;
+    arc.setAttribute('d', d);
+  }
+}
+
+/* UI updates */
+function updateUI(){
+  uiPower.textContent = S.power;
+  uiAcc.textContent = S.acc;
+  uiCoins.textContent = S.coins;
+  uiHole.textContent = S.hole;
+  // dynamic course
+  const h = holes[(S.hole-1) % holes.length];
+  uiDistance.textContent = `${h.dist}m`;
+  uiWind.textContent = `${h.wind}`;
+  meterPower.style.width = Math.min(100, (S.power/12) * 100) + '%';
+  meterAcc.style.width = Math.min(100, (S.acc/12) * 100) + '%';
+  meterPowerText.textContent = `${Math.round(Math.min(100, (S.power/12) * 100))}%`;
+  meterAccText.textContent = `${Math.round(Math.min(100, (S.acc/12) * 100))}%`;
+  document.getElementById('courseHole').textContent = S.hole;
+  document.getElementById('courseDist').textContent = `${h.dist}m`;
+  document.getElementById('coursePar').textContent = `${h.par}`;
+}
+
+/* persistence */
+function saveState(){
+  localStorage.setItem('orbitGolfState', JSON.stringify(S));
+}
+function loadState(){
+  try {
+    const raw = localStorage.getItem('orbitGolfState');
+    if(raw) return JSON.parse(raw);
+  } catch(e){}
+  return {...DEFAULT};
+}
+
+/* training modal logic */
+const overlayTrainEl = document.getElementById('overlayTrain');
+document.getElementById('trainBtn').addEventListener('click', ()=>{ overlayTrainEl.classList.add('open'); overlayTrainEl.style.display='flex'; initTrain();});
+document.getElementById('closeTrainModal').addEventListener('click', ()=>{ overlayTrainEl.classList.remove('open'); overlayTrainEl.style.display='none'; });
+
+function initTrain(){
+  // power drill
+  const startPower = document.getElementById('startPower');
+  const tapCount = document.getElementById('tapCount');
+  tapCount.textContent = '0';
+  let taps = 0; let running=false;
+  startPower.onclick = ()=>{
+    if(running) return;
+    running=true; taps=0; tapCount.textContent='0';
+    startPower.textContent='TAP!';
+    const start = performance.now();
+    const onTap = ()=>{ taps++; tapCount.textContent = taps; };
+    startPower.addEventListener('click', onTap);
+    setTimeout(()=>{
+      startPower.removeEventListener('click', onTap);
+      startPower.textContent='Start';
+      running=false;
+      const gain = Math.min(3, Math.floor(taps/8));
+      S.power = Math.min(12, S.power + gain);
+      S.coins += gain * 2;
+      saveState(); updateUI(); showToast(`Power +${gain}`);
+    }, 3000);
+  };
+
+  // accuracy drill
+  const startAcc = document.getElementById('startAcc');
+  const trainTarget = document.getElementById('trainTarget');
+  const accRes = document.getElementById('accResult');
+  let animId = null; let running2=false;
+  startAcc.onclick = ()=>{
+    if(running2) return;
+    running2=true; accRes.textContent='—';
+    const ctx2 = trainTarget.getContext('2d');
+    let t=0;
     function draw(){
-      const w = canvas.width;
-      const h = canvas.height;
-
-      ctx.clearRect(0,0,w,h);
-
-      // sky
-      const sky = ctx.createLinearGradient(0,0,0,h);
-      sky.addColorStop(0, '#d9f0ff');
-      sky.addColorStop(0.2, '#a2d7ff');
-      sky.addColorStop(0.38, '#84c0d9');
-      sky.addColorStop(0.52, '#62b77d');
-      sky.addColorStop(1, '#1f6c45');
-      ctx.fillStyle = sky;
-      ctx.fillRect(0,0,w,h);
-
-      const hole = currentHole();
-      const groundY = h - 110;
-      const fairwayCenter = w - 110;
-      const fairwayWidth = 260;
-
-      // distant hills
-      ctx.fillStyle = 'rgba(42, 102, 64, 0.6)';
-      ctx.beginPath();
-      ctx.moveTo(0, h - 150);
-      ctx.quadraticCurveTo(w * 0.15, h - 320, w * 0.3, h - 170);
-      ctx.quadraticCurveTo(w * 0.5, h - 280, w * 0.7, h - 180);
-      ctx.quadraticCurveTo(w * 0.85, h - 240, w, h - 170);
-      ctx.lineTo(w, h);
-      ctx.lineTo(0, h);
-      ctx.closePath();
-      ctx.fill();
-
-      // rough and fairway
-      ctx.fillStyle = '#5d9d5d';
-      ctx.fillRect(0, groundY + 16, w, h - groundY);
-
-      ctx.fillStyle = '#79d88a';
-      ctx.beginPath();
-      ctx.ellipse(fairwayCenter, groundY + 18, fairwayWidth, 54, 0, 0, Math.PI * 2);
-      ctx.fill();
-
-      // water hazards
-      const waterAreas = [
-        { x: w * 0.42, y: groundY + 28, w: 90, h: 40 },
-        { x: w * 0.72, y: groundY + 22, w: 110, h: 45 }
-      ];
-
-      waterAreas.forEach(hazard => {
-        ctx.fillStyle = 'rgba(66,184,255,0.8)';
-        ctx.beginPath();
-        ctx.ellipse(hazard.x, hazard.y, hazard.w, hazard.h, 0, 0, Math.PI * 2);
-        ctx.fill();
-      });
-
-      // bunker
-      ctx.fillStyle = '#d0c2a1';
-      ctx.beginPath();
-      ctx.ellipse(w * 0.62, groundY + 18, 80, 34, 0.1, 0, Math.PI * 2);
-      ctx.fill();
-
-      // grass strip
-      ctx.fillStyle = '#2d7d47';
-      ctx.fillRect(0, groundY + 52, w, h - (groundY + 52));
-
-      // flag + hole
-      const holeX = w - 120;
-      const holeY = groundY + 16;
-      ctx.strokeStyle = '#f8f8f8';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(holeX - 4, holeY - 50);
-      ctx.lineTo(holeX - 4, holeY + 8);
-      ctx.stroke();
-
-      ctx.fillStyle = '#df4b4b';
-      ctx.beginPath();
-      ctx.moveTo(holeX - 4, holeY - 50);
-      ctx.lineTo(holeX + 18, holeY - 42);
-      ctx.lineTo(holeX - 4, holeY - 32);
-      ctx.fill();
-
-      ctx.fillStyle = '#0a1218';
-      ctx.beginPath();
-      ctx.arc(holeX, holeY, 8, 0, Math.PI * 2);
-      ctx.fill();
-
-      // aim line
-      if (aiming && aimStart && aimEnd) {
-        ctx.save();
-        ctx.strokeStyle = 'rgba(255,255,255,0.85)';
-        ctx.setLineDash([8, 9]);
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(player.ball.x, player.ball.y);
-        ctx.lineTo(aimEnd.x, aimEnd.y);
-        ctx.stroke();
-        ctx.restore();
-
-        const dx = aimStart.x - aimEnd.x;
-        const dy = aimStart.y - aimEnd.y;
-        const power = Math.min(230, Math.hypot(dx, dy));
-        const angle = Math.atan2(dy, dx);
-        ctx.fillStyle = 'rgba(255,255,255,0.15)';
-        ctx.beginPath();
-        ctx.arc(player.ball.x, player.ball.y, 12 + power * 0.12, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.beginPath();
-        ctx.moveTo(player.ball.x, player.ball.y);
-        ctx.lineTo(player.ball.x + Math.cos(angle) * (45 + power * 0.3), player.ball.y + Math.sin(angle) * (45 + power * 0.3));
-        ctx.strokeStyle = 'rgba(121,231,255,0.9)';
-        ctx.lineWidth = 3;
-        ctx.stroke();
-      }
-
-      // draw player
-      drawGolfer(player.x, player.y, state.skin);
-
-      // draw ball
-      drawBall(player.ball.x, player.ball.y, player.ball.r);
-
-      // show wind lines
-      ctx.strokeStyle = 'rgba(255,255,255,0.5)';
-      ctx.lineWidth = 1.5;
-      for (let i = 0; i < 6; i++) {
-        const x = 40 + i * 42;
-        const y = 100 + (i % 2) * 12;
-        ctx.beginPath();
-        ctx.moveTo(x, y);
-        ctx.lineTo(x + 18, y - 5);
-        ctx.moveTo(x + 18, y - 5);
-        ctx.lineTo(x + 30, y - 8);
-        ctx.stroke();
-      }
-
-      // draw ball shadow
-      if (!player.ball.moving) {
-        ctx.fillStyle = 'rgba(0,0,0,0.15)';
-        ctx.beginPath();
-        ctx.ellipse(player.ball.x, groundY + 22, 12, 6, 0, 0, Math.PI * 2);
-        ctx.fill();
-      }
+      ctx2.clearRect(0,0,trainTarget.width,trainTarget.height);
+      // center marker
+      ctx2.fillStyle = '#79e7ff';
+      ctx2.beginPath(); ctx2.arc(160,44,6,0,Math.PI*2); ctx2.fill();
+      // moving marker
+      const x = 32 + (Math.sin(t*0.08)*0.5 + 0.5) * (trainTarget.width - 64);
+      ctx2.fillStyle = '#ffd166';
+      ctx2.beginPath(); ctx2.arc(x,44,10,0,Math.PI*2); ctx2.fill();
+      t++;
+      animId = requestAnimationFrame(draw);
     }
-
-    function drawGolfer(x, y, skinIndex){
-      const skin = skins[skinIndex] || skins[0];
-
-      ctx.fillStyle = skin.body;
-      ctx.beginPath(); ctx.ellipse(x, y, 16, 18, 0, 0, Math.PI * 2); ctx.fill();
-
-      ctx.fillStyle = '#f5d4b7';
-      ctx.beginPath(); ctx.arc(x, y - 20, 10, 0, Math.PI * 2); ctx.fill();
-
-      ctx.fillStyle = skin.hat;
-      ctx.fillRect(x - 12, y - 31, 24, 6);
-      ctx.fillRect(x - 6, y - 36, 12, 5);
-
-      ctx.strokeStyle = '#dfeaf1';
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.moveTo(x + 8, y - 6);
-      ctx.lineTo(x + 32, y - 18);
-      ctx.stroke();
-
-      ctx.strokeStyle = '#c3d0da';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(x - 12, y + 16);
-      ctx.lineTo(x - 22, y + 30);
-      ctx.moveTo(x + 12, y + 16);
-      ctx.lineTo(x + 22, y + 30);
-      ctx.stroke();
-
-      ctx.fillStyle = skin.accent;
-      ctx.fillRect(x + 18, y - 25, 6, 2);
-    }
-
-    function drawBall(x, y, r){
-      ctx.fillStyle = '#f8fbff';
-      ctx.beginPath();
-      ctx.arc(x, y, r, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.strokeStyle = '#bccad3';
-      ctx.beginPath();
-      ctx.arc(x, y, r, 0, Math.PI * 2);
-      ctx.stroke();
-    }
-
-    function update(){
-      const hole = currentHole();
-      const groundY = canvas.height - 110;
-
-      if (player.ball.moving) {
-        const roughFactor = hole.rough;
-        const windFactor = hole.wind * 0.02;
-
-        player.ball.vy += 0.22;
-        player.ball.vx += windFactor;
-
-        // slight drag
-        player.ball.vx *= 0.992;
-        player.ball.vy *= 0.991;
-
-        // rough slowdown
-        const inRough = Math.abs(player.ball.x - (canvas.width - 110)) < 160 &&
-                        player.ball.y > groundY - 30;
-
-        if (inRough) {
-          player.ball.vx *= 0.986;
-          player.ball.vy *= 0.986;
-        }
-
-        // water hazard
-        const waterAreas = [
-          { x: canvas.width * 0.42, y: groundY + 18, w: 90, h: 40 },
-          { x: canvas.width * 0.72, y: groundY + 18, w: 110, h: 45 }
-        ];
-
-        let isInWater = false;
-        for (const wArea of waterAreas) {
-          const dx = player.ball.x - wArea.x;
-          const dy = player.ball.y - wArea.y;
-          if (Math.abs(dx) < wArea.w * 0.7 && Math.abs(dy) < wArea.h * 0.7) {
-            isInWater = true;
-          }
-        }
-
-        if (isInWater) {
-          player.ball.vx *= 0.75;
-          player.ball.vy *= 0.75;
-          player.ball.inWater = true;
-        } else {
-          player.ball.inWater = false;
-        }
-
-        // bunker detection
-        const bunkerX = canvas.width * 0.62;
-        const bunkerY = groundY + 8;
-        const bunkerDx = player.ball.x - bunkerX;
-        const bunkerDy = player.ball.y - bunkerY;
-        if (Math.abs(bunkerDx) < 80 && Math.abs(bunkerDy) < 38) {
-          player.ball.inSand = true;
-          player.ball.vx *= 0.9;
-          player.ball.vy *= 0.9;
-        } else {
-          player.ball.inSand = false;
-        }
-
-        player.ball.x += player.ball.vx;
-        player.ball.y += player.ball.vy;
-
-        // bounce on floor
-        if (player.ball.y + player.ball.r >= groundY + 36) {
-          player.ball.y = groundY + 36 - player.ball.r;
-          player.ball.vy *= -0.38;
-          player.ball.vx *= 0.92;
-          if (Math.abs(player.ball.vy) < 0.35) player.ball.vy = 0;
-        }
-
-        if (player.ball.x < 0 || player.ball.x > canvas.width || player.ball.y > canvas.height + 40) {
-          player.ball.x = player.x + 25;
-          player.ball.y = player.y - 6;
-          player.ball.vx = 0;
-          player.ball.vy = 0;
-          player.ball.moving = false;
-          state.strokes++;
-          updateUI();
-        }
-
-        // stop when very slow
-        const speed = Math.hypot(player.ball.vx, player.ball.vy);
-        if (speed < 0.18) {
-          player.ball.vx = 0;
-          player.ball.vy = 0;
-          player.ball.moving = false;
-          state.strokes++;
-          updateUI();
-        }
-
-        // hole complete
-        const holeX = canvas.width - 120;
-        const holeY = groundY + 16;
-        const distToHole = Math.hypot(player.ball.x - holeX, player.ball.y - holeY);
-        if (distToHole < 15) {
-          const reward = Math.max(18, 30 - state.strokes + state.powerLevel * 2);
-          state.coins += reward;
-          state.totalScore += reward;
-          saveState();
-          updateUI();
-          showToast(`Hole complete! +${reward} coins`);
-          nextHole();
-        }
-      }
-    }
-
-    function onPointerDown(e){
-      const pos = getCanvasPoint(e);
-      const target = player.ball;
-      const ballDistance = Math.hypot(pos.x - target.x, pos.y - target.y);
-      if (player.ball.moving || ballDistance > 80) return;
-
-      aiming = true;
-      aimStart = pos;
-      aimEnd = pos;
-    }
-
-    function onPointerMove(e){
-      if (!aiming) return;
-      aimEnd = getCanvasPoint(e);
-    }
-
-    function onPointerUp(){
-      if (!aiming) return;
-      aiming = false;
-
-      if (!aimStart || !aimEnd) return;
-
-      const dx = aimStart.x - aimEnd.x;
-      const dy = aimStart.y - aimEnd.y;
-      const length = Math.hypot(dx, dy);
-
-      if (length < 10) {
-        aimStart = null;
-        aimEnd = null;
-        return;
-      }
-
-      const angle = Math.atan2(dy, dx);
-      const forceMax = 12 + state.powerLevel * 1.7;
-      const force = Math.min(forceMax, length * 0.16 + 2.8);
-      const accuracyBias = (state.accuracy / 12) * 0.35;
-      const angleAdjust = (Math.random() - 0.5) * (0.55 - accuracyBias);
-
-      const finalAngle = angle + angleAdjust;
-
-      player.ball.vx = Math.cos(finalAngle) * force * state.difficulty;
-      player.ball.vy = Math.sin(finalAngle) * force * state.difficulty;
-
-      player.ball.moving = true;
-      state.strokes++;
-      updateUI();
-
-      aimStart = null;
-      aimEnd = null;
-    }
-
-    function getCanvasPoint(event){
-      const rect = canvas.getBoundingClientRect();
-      return {
-        x: ((event.clientX - rect.left) / rect.width) * canvas.width,
-        y: ((event.clientY - rect.top) / rect.height) * canvas.height
-      };
-    }
-
-    function openTraining(){
-      document.getElementById('trainingModal').classList.add('open');
-      setupTrainingCanvas();
-    }
-
-    function closeTraining(){
-      document.getElementById('trainingModal').classList.remove('open');
-    }
-
-    function openTutorial(){
-      tutorialModal.classList.add('open');
-      state.tutorialShowing = true;
-      state.tutorialIndex = 0;
-      renderTutorial();
-    }
-
-    function closeTutorial(){
-      tutorialModal.classList.remove('open');
-      state.tutorialShowing = false;
-    }
-
-    function renderTutorial(){
-      const page = document.getElementById('tutorialPage');
-      const steps = [
-        {
-          title: '1. Aim your shot',
-          text: 'Click and drag from the ball. Longer drag = more power. The game uses your current Power and Accuracy stats.'
-        },
-        {
-          title: '2. Train to get better',
-          text: 'Use the Train button to do the Power Drill and Accuracy Drill. Those upgrades make your shots travel farther and land more consistently.'
-        },
-        {
-          title: '3. Use skins',
-          text: 'Choose a golfer skin from the right-hand panel. You can style your golfer differently as you keep playing.'
-        },
-        {
-          title: '4. Finish holes',
-          text: 'Try to complete each hole with fewer strokes. Better shots earn coins, and coins help you keep improving.'
-        }
-      ];
-
-      const current = steps[state.tutorialIndex];
-      page.innerHTML = `
-        <div class="tutorial-step">
-          <strong>${current.title}</strong>
-          <div class="small">${current.text}</div>
-        </div>
-      `;
-
-      const backBtn = document.getElementById('tutorialBackBtn');
-      const nextBtn = document.getElementById('tutorialNextBtn');
-
-      backBtn.classList.toggle('hidden', state.tutorialIndex === 0);
-      nextBtn.textContent = state.tutorialIndex === steps.length - 1 ? 'Finish' : 'Next';
-    }
-
-    function nextTutorialStep(){
-      state.tutorialIndex++;
-      if (state.tutorialIndex >= 4) {
-        closeTutorial();
-        return;
-      }
-      renderTutorial();
-    }
-
-    function prevTutorialStep(){
-      if (state.tutorialIndex > 0) {
-        state.tutorialIndex--;
-        renderTutorial();
-      }
-    }
-
-    function setupTrainingCanvas(){
-      const c = document.getElementById('accuracyCanvas');
-      const ctx2 = c.getContext('2d');
-
-      let markerX = 150;
-      let anim = 0;
-      let zoom = 1;
-
-      function drawTarget(){
-        ctx2.clearRect(0,0,c.width,c.height);
-        ctx2.fillStyle = '#061822';
-        ctx2.fillRect(0,0,c.width,c.height);
-
-        // target area
-        ctx2.strokeStyle = 'rgba(255,255,255,0.12)';
-        ctx2.lineWidth = 1;
-        ctx2.beginPath();
-        ctx2.moveTo(25,60);
-        ctx2.lineTo(c.width - 25, 60);
-        ctx2.stroke();
-
-        // moving marker
-        const x = 35 + (Math.sin(anim * 0.08) * 0.5 + 0.5) * (c.width - 70);
-        const y = 60;
-
-        ctx2.fillStyle = '#ffd166';
-        ctx2.beginPath();
-        ctx2.arc(x, y, 12, 0, Math.PI * 2);
-        ctx2.fill();
-
-        // center target
-        ctx2.fillStyle = '#79e7ff';
-        ctx2.beginPath();
-        ctx2.arc(150, 60, 6, 0, Math.PI * 2);
-        ctx2.fill();
-      }
-
-      function done(){
-        const hitX = 35 + (Math.sin(anim * 0.08) * 0.5 + 0.5) * (c.width - 70);
-        const centerX = 150;
-        const diff = Math.abs(hitX - centerX);
-        const gained = diff < 20 ? 2 : diff < 35 ? 1 : 0;
-
-        state.accuracy = Math.min(12, state.accuracy + gained);
-        state.coins += gained * 3;
-        saveState();
-        updateUI();
-
-        showToast(`Accuracy drill complete! +${gained} accuracy`);
-        closeTraining();
-      }
-
-      document.getElementById('accuracyDrillBtn').onclick = () => {
-        let run = true;
-        const comp = () => {
-          if (!run) return;
-          anim += 1.2;
-          drawTarget();
-          requestAnimationFrame(comp);
-        };
-        drawTarget();
-        requestAnimationFrame(comp);
-
-        c.onclick = () => {
-          if (run) {
-            run = false;
-            done();
-          }
-        };
-      };
-
-      document.getElementById('powerDrillBtn').onclick = () => {
-        let count = 0;
-        const start = performance.now();
-        const btn = document.getElementById('powerDrillBtn');
-
-        const addTap = () => {
-          count++;
-          document.getElementById('powerDrillCount').textContent = count;
-        };
-
-        btn.addEventListener('click', addTap, { once: true });
-        let timer = setTimeout(() => {
-          const gained = Math.min(3, Math.floor(count / 10));
-          state.powerLevel = Math.min(12, state.powerLevel + gained);
-          state.coins += gained * 2;
-          saveState();
-          updateUI();
-          showToast(`Power drill complete! +${gained} power`);
-          closeTraining();
-          clearTimeout(timer);
-          btn.removeEventListener('click', addTap);
-        }, 3000);
-
-        // ensure button click isn't duplicated by the same event
-        btn.onclick = () => {
-          if (btn.dataset.running === '1') return;
-          btn.dataset.running = '1';
-          btn.textContent = 'Training...';
-          const startCounter = () => {
-            if (performance.now() - start > 3000) return;
-            count++;
-            document.getElementById('powerDrillCount').textContent = count;
-            requestAnimationFrame(startCounter);
-          };
-          requestAnimationFrame(startCounter);
-          setTimeout(() => {
-            const gained = Math.min(3, Math.floor(count / 10));
-            state.powerLevel = Math.min(12, state.powerLevel + gained);
-            state.coins += gained * 2;
-            saveState();
-            updateUI();
-            showToast(`Power drill complete! +${gained} power`);
-            closeTraining();
-          }, 3000);
-        };
-      };
-    }
-
-    function showToast(message){
-      const old = document.querySelector('.toast');
-      if (old) old.remove();
-
-      const toast = document.createElement('div');
-      toast.className = 'toast';
-      toast.textContent = message;
-      Object.assign(toast.style, {
-        position: 'absolute',
-        left: '50%',
-        bottom: '24px',
-        transform: 'translateX(-50%)',
-        background: 'rgba(9,18,24,0.9)',
-        border: '1px solid rgba(255,255,255,0.08)',
-        color: '#eaf8ff',
-        padding: '10px 14px',
-        borderRadius: '12px',
-        fontWeight: '700',
-        boxShadow: '0 24px 50px rgba(0,0,0,0.25)',
-        zIndex: 40
-      });
-      document.querySelector('.app').appendChild(toast);
-
-      setTimeout(() => toast.remove(), 1800);
-    }
-
-    function loop(){
-      update();
-      draw();
-      requestAnimationFrame(loop);
-    }
-
-    function init(){
-      loadState();
-      createSkins();
-      setupEvents();
-      resetBallAndPlayer();
-      updateUI();
-      openTutorial();
-      requestAnimationFrame(loop);
-    }
-
-    init();
-  </script>
+    draw();
+    trainTarget.onclick = (ev)=>{
+      if(!running2) return;
+      running2=false;
+      cancelAnimationFrame(animId);
+      const rect = trainTarget.getBoundingClientRect();
+      const clickX = (ev.clientX - rect.left) * (trainTarget.width / rect.width);
+      const targetX = 160;
+      const diff = Math.abs(clickX - targetX); // px distance
+      const gain = diff < 18 ? 2 : diff < 36 ? 1 : 0;
+      S.acc = Math.min(12, S.acc + gain);
+      S.coins += gain * 3;
+      saveState(); updateUI();
+      accRes.textContent = `${Math.round(diff)}px → +${gain}`;
+      showToast(`Accuracy +${gain}`);
+    };
+  };
+}
+
+/* tutorial modal */
+document.getElementById('tutorialBtn').addEventListener('click', ()=>{ overlayTutorial.classList.add('open'); overlayTutorial.style.display='flex'; overlayTutorial.setAttribute('aria-hidden','false');});
+document.getElementById('closeTut').addEventListener('click', ()=>{ overlayTutorial.classList.remove('open'); overlayTutorial.style.display='none'; overlayTutorial.setAttribute('aria-hidden','true');});
+
+/* next/prev holes */
+document.getElementById('nextHole').addEventListener('click', ()=>{ S.hole = (S.hole % holes.length) + 1; saveState(); updateUI(); resetBall(); });
+document.getElementById('prevHole').addEventListener('click', ()=>{ S.hole = (S.hole - 2 + holes.length) % holes.length + 1; saveState(); updateUI(); resetBall(); });
+
+/* shoot button (quick shot using preset angle/power) */
+document.getElementById('shootBtn').addEventListener('click', ()=>{ // small auto-shot forward
+  if(ball.moving) return;
+  // shoot at hole roughly
+  const dx = orbit.holeX - ball.x;
+  const dy = orbit.holeY - ball.y;
+  const ang = Math.atan2(dy,dx) + (1 - S.acc/12) * ((Math.random()-0.5)*0.16);
+  const dist = Math.min(240, Math.hypot(dx,dy));
+  const basePower = dist * (0.02 + S.power*0.022);
+  ball.vx = Math.cos(ang) * basePower;
+  ball.vy = Math.sin(ang) * basePower;
+  ball.moving = true;
+});
+
+/* simple toast */
+function showToast(text){
+  const t = document.createElement('div'); t.textContent = text;
+  Object.assign(t.style,{position:'fixed',left:'50%',transform:'translateX(-50%)',bottom:'32px',padding:'10px 14px',background:'linear-gradient(90deg,#032022,#07202a)',border:'1px solid rgba(255,255,255,0.04)',color:'#dffaff',borderRadius:'10px',zIndex:120});
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(), 1600);
+}
+
+/* small celebratory ring */
+function spawnConfetti(){
+  // not used heavily to keep it light
+}
+
+/* utilities */
+function loadState(){ try{ const r = localStorage.getItem('orbitGolfState'); if(r) return JSON.parse(r); }catch(e){} return {...DEFAULT}; }
+function saveState(){ localStorage.setItem('orbitGolfState', JSON.stringify(S)); }
+
+/* init */
+function init(){
+  S = loadState();
+  layoutInit();
+  buildSkins();
+  updateUI();
+  requestAnimationFrame(loop);
+}
+init();
+
+/* helper to convert pointer coords to canvas scaled coords (also works inside stage) */
+function toCanvas(ev){
+  const rect = canvas.getBoundingClientRect();
+  return { x: (ev.clientX - rect.left) * (canvas.width / rect.width), y: (ev.clientY - rect.top) * (canvas.height / rect.height) };
+}
+
+/* pointer handling reuse: add events to stage area also for smaller screens */
+stage.addEventListener('pointerdown', (e)=>{
+  const p = toCanvas(e);
+  const d = Math.hypot(p.x - ball.x, p.y - ball.y);
+  if(d < 100 && !ball.moving){ aiming=true; aimStart=p; aimEnd=p; }
+});
+stage.addEventListener('pointermove', (e)=>{ if(aiming) aimEnd = toCanvas(e); });
+window.addEventListener('pointerup', (e)=>{ if(aiming){ aiming=false; shootFromDrag(); } });
+
+/* expose some state for debugging (optional) */
+window.PO = { S, resetBall, spawnCelebration };
+</script>
 </body>
 </html>
