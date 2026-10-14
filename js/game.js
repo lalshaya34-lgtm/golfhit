@@ -23,14 +23,14 @@ const UPGRADES = [
 ];
 
 const DEFAULT_STATE = {
-  power: 1,            // base stat (visual)
-  acc: 1,              // base stat (visual)
+  power: 1,
+  acc: 1,
   coins: 0,
   skin: 0,
   hole: 1,
   mute: false,
   upgrades: { driver: 0, control: 0, swing: 0, club: 0 },
-  training: { powerXP: 0, accXP: 0 }, // new training XP bucket
+  training: { powerXP: 0, accXP: 0 },
   leaderboard: [{ name: 'Player', score: 120, date: 'today' }]
 };
 
@@ -102,18 +102,17 @@ function upgradeCost(upgradeId, currentLevel) {
   return Math.round(base.cost * (1 + currentLevel * 0.85));
 }
 
-// Effective stats are calculated from base stat + training XP
 function getEffectivePower() {
   const base = game.state.power || 1;
   const xp = game.state.training?.powerXP || 0;
-  const bonus = Math.floor(xp / 10); // every 10 XP = +1 power
+  const bonus = Math.floor(xp / 10);
   return Math.min(12, base + bonus);
 }
 
 function getEffectiveAcc() {
   const base = game.state.acc || 1;
   const xp = game.state.training?.accXP || 0;
-  const bonus = Math.floor(xp / 10); // every 10 XP = +1 accuracy
+  const bonus = Math.floor(xp / 10);
   return Math.min(12, base + bonus);
 }
 
@@ -136,7 +135,7 @@ function updateHUD() {
 
   ui.shotPowerValue.textContent = String(getEffectivePower());
   ui.shotAccValue.textContent = String(getEffectiveAcc());
-  document.getElementById('muteBtn').textContent = game.state.mute ? '🔇' : '🔊';
+  document.getElementById('muteBtn').textContent = game.state.mute ? '🔊' : '🔇';
 }
 
 function resizeCanvas() {
@@ -214,9 +213,8 @@ function bindEvents() {
     const dy = game.world.holeY - game.ball.y;
     const angle = Math.atan2(dy, dx) + (Math.random() - 0.5) * 0.12;
     const basePower = Math.min(260, Math.hypot(dx, dy) * 0.2 + 20) * getShotMultiplier();
-    // apply effective power as small modifier to basePower
     const eff = getEffectivePower();
-    const powerModifier = 1 + (eff - 1) * 0.06; // each effective power adds small multiplier
+    const powerModifier = 1 + (eff - 1) * 0.06;
     game.ball.vx = Math.cos(angle) * basePower * powerModifier;
     game.ball.vy = Math.sin(angle) * basePower * powerModifier;
     game.ball.moving = true;
@@ -297,7 +295,6 @@ function updateBall(dt) {
   const wind = getCourse().wind * 0.012;
   game.ball.vy += 0.22 * dt;
   game.ball.vx += wind * dt;
-  // small friction modified by control upgrade
   const controlFactor = 1 - (game.state.upgrades.control * 0.02);
   game.ball.vx *= 0.995 * controlFactor;
   game.ball.vy *= 0.993 * controlFactor;
@@ -329,24 +326,6 @@ function updateBall(dt) {
   if (Math.hypot(dx, dy) < 18) {
     finishHole();
   }
-}
-
-function finishHole() {
-  if (game.ball.moving === false) return;
-
-  const current = getCourse();
-  const reward = Math.round(24 + current.dist / 10 + getEffectivePower() * 2);
-  gainCoins(reward);
-  addLeaderboardEntry(reward);
-
-  game.state.hole += 1;
-  playerReset();
-  updateHUD();
-  buildLeaderboard();
-  spawnCelebration();
-
-  audioManager.playHole();
-  saveState();
 }
 
 function gainCoins(amount) {
@@ -442,7 +421,6 @@ function buyUpgrade(id) {
   audioManager.playTrain();
 }
 
-// Training drills now award XP which converts to effective stats
 function startPowerDrill() {
   const btn = document.getElementById('powerDrillBtn');
   const countEl = document.getElementById('powerDrillCount');
@@ -463,16 +441,12 @@ function startPowerDrill() {
   setTimeout(() => {
     active = false;
     btn.onclick = null;
-    // convert taps into training XP
-    const baseXP = Math.floor(taps / 4); // every 4 taps = 1 XP
-    const bonusFromUpgrades = (game.state.upgrades.driver || 0) * 1 + (game.state.upgrades.swing || 0) * 1; // upgrades make training more effective
+    const baseXP = Math.floor(taps / 4);
+    const bonusFromUpgrades = (game.state.upgrades.driver || 0) * 1 + (game.state.upgrades.swing || 0) * 1;
     const gainedXP = Math.min(120, baseXP + bonusFromUpgrades);
     game.state.training.powerXP = (game.state.training.powerXP || 0) + gainedXP;
-
-    // small coin reward for training
     const coinReward = Math.max(0, Math.floor(gainedXP / 2));
     game.state.coins += coinReward;
-
     btn.textContent = 'Start Power Drill';
     btn.onclick = startPowerDrill;
     audioManager.playTrain();
@@ -526,12 +500,10 @@ function startAccuracyDrill() {
     const rect = canvas.getBoundingClientRect();
     const clickX = ((event.clientX - rect.left) / rect.width) * canvas.width;
     const diff = Math.abs(clickX - canvas.width / 2);
-    const baseGain = diff < 18 ? 3 : diff < 35 ? 1 : 0; // better hit = more XP
-    const bonusFromUpgrades = (game.state.upgrades.control || 0) * 1; // control upgrades help training
+    const baseGain = diff < 18 ? 3 : diff < 35 ? 1 : 0;
+    const bonusFromUpgrades = (game.state.upgrades.control || 0) * 1;
     const gainedXP = Math.min(120, baseGain + bonusFromUpgrades);
     game.state.training.accXP = (game.state.training.accXP || 0) + gainedXP;
-
-    // coin reward
     game.state.coins += Math.max(0, gainedXP);
 
     resultEl.textContent = `${Math.round(diff)}px +${gainedXP}`;
@@ -859,7 +831,6 @@ function init() {
   buildLeaderboard();
   bindEvents();
   updateHUD();
-  // Do not auto-open tutorial every time if player has trained before
   if ((game.state.training.powerXP || 0) + (game.state.training.accXP || 0) < 6) {
     openTutorial();
   }
