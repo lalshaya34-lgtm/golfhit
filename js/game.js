@@ -3,7 +3,9 @@ const COURSE_DATA = [
   { dist: 300, par: 3, wind: 0 },
   { dist: 360, par: 4, wind: 1 },
   { dist: 430, par: 4, wind: 2 },
-  { dist: 520, par: 5, wind: 3 }
+  { dist: 520, par: 5, wind: 3 },
+  { dist: 610, par: 5, wind: 2 },
+  { dist: 660, par: 6, wind: 4 }
 ];
 
 const SKINS = [
@@ -14,20 +16,21 @@ const SKINS = [
 ];
 
 const UPGRADES = [
-  { id: 'driver', label: 'Driver', cost: 40, description: '+5 power per level' },
-  { id: 'control', label: 'Control', cost: 45, description: '+5 accuracy per level' },
-  { id: 'swing', label: 'Swing Core', cost: 80, description: '+7 power per level' },
+  { id: 'driver', label: 'Driver', cost: 40, description: '+5 power per level (training bonus)' },
+  { id: 'control', label: 'Control', cost: 45, description: '+5 accuracy per level (training bonus)' },
+  { id: 'swing', label: 'Swing Core', cost: 80, description: '+7 power per level (training bonus)' },
   { id: 'club', label: 'Pro Club', cost: 120, description: '+10% all shot quality' }
 ];
 
 const DEFAULT_STATE = {
-  power: 1,
-  acc: 1,
+  power: 1,            // base stat (visual)
+  acc: 1,              // base stat (visual)
   coins: 0,
   skin: 0,
   hole: 1,
   mute: false,
   upgrades: { driver: 0, control: 0, swing: 0, club: 0 },
+  training: { powerXP: 0, accXP: 0 }, // new training XP bucket
   leaderboard: [{ name: 'Player', score: 120, date: 'today' }]
 };
 
@@ -75,6 +78,7 @@ function loadState() {
         ...DEFAULT_STATE,
         ...parsed,
         upgrades: { ...DEFAULT_STATE.upgrades, ...(parsed.upgrades || {}) },
+        training: { ...DEFAULT_STATE.training, ...(parsed.training || {}) },
         leaderboard: Array.isArray(parsed.leaderboard) ? parsed.leaderboard : DEFAULT_STATE.leaderboard
       };
     }
@@ -98,25 +102,40 @@ function upgradeCost(upgradeId, currentLevel) {
   return Math.round(base.cost * (1 + currentLevel * 0.85));
 }
 
+// Effective stats are calculated from base stat + training XP
+function getEffectivePower() {
+  const base = game.state.power || 1;
+  const xp = game.state.training?.powerXP || 0;
+  const bonus = Math.floor(xp / 10); // every 10 XP = +1 power
+  return Math.min(12, base + bonus);
+}
+
+function getEffectiveAcc() {
+  const base = game.state.acc || 1;
+  const xp = game.state.training?.accXP || 0;
+  const bonus = Math.floor(xp / 10); // every 10 XP = +1 accuracy
+  return Math.min(12, base + bonus);
+}
+
 function updateHUD() {
   const course = getCourse();
-  ui.statPower.textContent = String(game.state.power);
-  ui.statAcc.textContent = String(game.state.acc);
+  ui.statPower.textContent = String(getEffectivePower());
+  ui.statAcc.textContent = String(getEffectiveAcc());
   ui.statCoins.textContent = String(game.state.coins);
   ui.hudHole.textContent = String(game.state.hole);
   ui.hudPar.textContent = String(course.par);
   ui.hudDistance.textContent = `${course.dist}m`;
   ui.hudWind.textContent = String(course.wind);
 
-  const pPct = Math.min(100, (game.state.power / 12) * 100);
-  const aPct = Math.min(100, (game.state.acc / 12) * 100);
+  const pPct = Math.min(100, (getEffectivePower() / 12) * 100);
+  const aPct = Math.min(100, (getEffectiveAcc() / 12) * 100);
   ui.powerMeter.style.width = `${pPct}%`;
   ui.accMeter.style.width = `${aPct}%`;
   ui.powerMeterText.textContent = `${Math.round(pPct)}%`;
   ui.accMeterText.textContent = `${Math.round(aPct)}%`;
 
-  ui.shotPowerValue.textContent = String(game.state.power);
-  ui.shotAccValue.textContent = String(game.state.acc);
+  ui.shotPowerValue.textContent = String(getEffectivePower());
+  ui.shotAccValue.textContent = String(getEffectiveAcc());
   document.getElementById('muteBtn').textContent = game.state.mute ? '🔇' : '🔊';
 }
 
@@ -133,8 +152,8 @@ function setupWorld() {
   game.world.cx = w * 0.56;
   game.world.cy = h * 0.48;
   game.world.radius = Math.min(w, h) * 0.28;
-  game.world.holeX = game.world.cx + game.world.radius * 1.3;
-  game.world.holeY = game.world.cy + 8;
+  game.world.holeX = game.world.cx + game.world.radius * 1.25;
+  game.world.holeY = game.world.cy + 10;
   playerReset();
   buildParticles();
 }
@@ -195,8 +214,11 @@ function bindEvents() {
     const dy = game.world.holeY - game.ball.y;
     const angle = Math.atan2(dy, dx) + (Math.random() - 0.5) * 0.12;
     const basePower = Math.min(260, Math.hypot(dx, dy) * 0.2 + 20) * getShotMultiplier();
-    game.ball.vx = Math.cos(angle) * basePower;
-    game.ball.vy = Math.sin(angle) * basePower;
+    // apply effective power as small modifier to basePower
+    const eff = getEffectivePower();
+    const powerModifier = 1 + (eff - 1) * 0.06; // each effective power adds small multiplier
+    game.ball.vx = Math.cos(angle) * basePower * powerModifier;
+    game.ball.vy = Math.sin(angle) * basePower * powerModifier;
     game.ball.moving = true;
     audioManager.playShoot();
   });
@@ -246,8 +268,8 @@ function shootFromAim() {
   }
 
   const angle = Math.atan2(dy, dx);
-  const power = Math.min(260, drag * (0.14 + game.state.power * 0.015)) * getShotMultiplier();
-  const deviance = (1 - Math.min(1, game.state.acc / 12)) * (Math.random() - 0.5) * 0.3;
+  const power = Math.min(260, drag * (0.14 + getEffectivePower() * 0.015)) * getShotMultiplier();
+  const deviance = (1 - Math.min(1, getEffectiveAcc() / 12)) * (Math.random() - 0.5) * 0.3;
   const finalAngle = angle + deviance;
 
   game.ball.vx = Math.cos(finalAngle) * power;
@@ -261,9 +283,11 @@ function shootFromAim() {
 function loop(ts) {
   const delta = Math.min(32, ts - game.lastTime || 16);
   game.lastTime = ts;
+
   updateBall(delta);
   updateCamera();
   render();
+
   requestAnimationFrame(loop);
 }
 
@@ -273,13 +297,15 @@ function updateBall(dt) {
   const wind = getCourse().wind * 0.012;
   game.ball.vy += 0.22 * dt;
   game.ball.vx += wind * dt;
-  game.ball.vx *= 0.995;
-  game.ball.vy *= 0.993;
+  // small friction modified by control upgrade
+  const controlFactor = 1 - (game.state.upgrades.control * 0.02);
+  game.ball.vx *= 0.995 * controlFactor;
+  game.ball.vy *= 0.993 * controlFactor;
 
   game.ball.x += game.ball.vx * dt * 0.85;
   game.ball.y += game.ball.vy * dt * 0.85;
 
-  const floorY = game.world.cy + game.world.radius * 0.35;
+  const floorY = game.world.cy + game.world.radius * 0.36;
   if (game.ball.y + game.ball.r >= floorY) {
     game.ball.y = floorY - game.ball.r;
     if (Math.abs(game.ball.vy) > 0.9) {
@@ -307,15 +333,18 @@ function updateBall(dt) {
 
 function finishHole() {
   if (game.ball.moving === false) return;
+
   const current = getCourse();
-  const reward = Math.round(24 + current.dist / 10 + game.state.power * 2);
+  const reward = Math.round(24 + current.dist / 10 + getEffectivePower() * 2);
   gainCoins(reward);
   addLeaderboardEntry(reward);
+
   game.state.hole += 1;
   playerReset();
   updateHUD();
   buildLeaderboard();
   spawnCelebration();
+
   audioManager.playHole();
   saveState();
 }
@@ -413,16 +442,7 @@ function buyUpgrade(id) {
   audioManager.playTrain();
 }
 
-function openTutorial() {
-  ui.tutorialModal.classList.remove('hidden');
-  ui.tutorialModal.setAttribute('aria-hidden', 'false');
-}
-
-function openTrainModal() {
-  ui.trainModal.classList.remove('hidden');
-  ui.trainModal.setAttribute('aria-hidden', 'false');
-}
-
+// Training drills now award XP which converts to effective stats
 function startPowerDrill() {
   const btn = document.getElementById('powerDrillBtn');
   const countEl = document.getElementById('powerDrillCount');
@@ -442,9 +462,17 @@ function startPowerDrill() {
 
   setTimeout(() => {
     active = false;
-    const gained = Math.min(3, Math.floor(taps / 8));
-    game.state.power = Math.min(12, game.state.power + gained);
-    game.state.coins += gained * 3;
+    btn.onclick = null;
+    // convert taps into training XP
+    const baseXP = Math.floor(taps / 4); // every 4 taps = 1 XP
+    const bonusFromUpgrades = (game.state.upgrades.driver || 0) * 1 + (game.state.upgrades.swing || 0) * 1; // upgrades make training more effective
+    const gainedXP = Math.min(120, baseXP + bonusFromUpgrades);
+    game.state.training.powerXP = (game.state.training.powerXP || 0) + gainedXP;
+
+    // small coin reward for training
+    const coinReward = Math.max(0, Math.floor(gainedXP / 2));
+    game.state.coins += coinReward;
+
     btn.textContent = 'Start Power Drill';
     btn.onclick = startPowerDrill;
     audioManager.playTrain();
@@ -498,16 +526,40 @@ function startAccuracyDrill() {
     const rect = canvas.getBoundingClientRect();
     const clickX = ((event.clientX - rect.left) / rect.width) * canvas.width;
     const diff = Math.abs(clickX - canvas.width / 2);
-    const gain = diff < 18 ? 2 : diff < 35 ? 1 : 0;
-    game.state.acc = Math.min(12, game.state.acc + gain);
-    game.state.coins += gain * 2;
-    resultEl.textContent = `${Math.round(diff)}px +${gain}`;
+    const baseGain = diff < 18 ? 3 : diff < 35 ? 1 : 0; // better hit = more XP
+    const bonusFromUpgrades = (game.state.upgrades.control || 0) * 1; // control upgrades help training
+    const gainedXP = Math.min(120, baseGain + bonusFromUpgrades);
+    game.state.training.accXP = (game.state.training.accXP || 0) + gainedXP;
+
+    // coin reward
+    game.state.coins += Math.max(0, gainedXP);
+
+    resultEl.textContent = `${Math.round(diff)}px +${gainedXP}`;
     saveState();
     updateHUD();
     buildShop();
     audioManager.playTrain();
     btn.textContent = 'Start Accuracy Drill';
+    canvas.onclick = null;
   };
+}
+
+function finishHole() {
+  if (game.ball.moving === false) return;
+
+  const current = getCourse();
+  const reward = Math.round(24 + current.dist / 10 + getEffectivePower() * 2);
+  gainCoins(reward);
+  addLeaderboardEntry(reward);
+
+  game.state.hole += 1;
+  playerReset();
+  updateHUD();
+  buildLeaderboard();
+  spawnCelebration();
+
+  audioManager.playHole();
+  saveState();
 }
 
 function spawnCelebration() {
@@ -555,10 +607,12 @@ function render() {
   ctx.fillRect(0, 0, game.canvas.width, game.canvas.height);
 
   drawParallax();
+  drawSkyGlow();
 
   ctx.save();
   ctx.translate(-game.camera.x, -game.camera.y);
   ctx.scale(game.camera.zoom, game.camera.zoom);
+
   drawGround();
   drawHole();
   drawParticles();
@@ -589,6 +643,23 @@ function drawParallax() {
   }
 }
 
+function drawSkyGlow() {
+  const ctx = game.ctx;
+  const g = ctx.createRadialGradient(
+    game.world.cx,
+    game.world.cy - 100,
+    40,
+    game.world.cx,
+    game.world.cy - 100,
+    420
+  );
+  g.addColorStop(0, 'rgba(255,255,255,0.1)');
+  g.addColorStop(0.5, 'rgba(126,231,255,0.12)');
+  g.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, game.canvas.width, game.canvas.height);
+}
+
 function drawGround() {
   const ctx = game.ctx;
   const cx = game.world.cx;
@@ -604,6 +675,12 @@ function drawGround() {
   ctx.beginPath();
   ctx.ellipse(cx, cy + radius * 0.24, radius * 1.02, radius * 0.34, 0, 0, Math.PI * 2);
   ctx.fill();
+
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.ellipse(cx, cy + radius * 0.24, radius * 1.02, radius * 0.34, 0, 0, Math.PI * 2);
+  ctx.stroke();
 }
 
 function drawHole() {
@@ -616,19 +693,25 @@ function drawHole() {
   ctx.arc(holeX, holeY, 12, 0, Math.PI * 2);
   ctx.fill();
 
-  ctx.strokeStyle = '#ff5e75';
-  ctx.lineWidth = 2.5;
+  ctx.strokeStyle = 'rgba(255,94,117,0.75)';
+  ctx.lineWidth = 2.8;
   ctx.beginPath();
-  ctx.moveTo(holeX - 4, holeY - 40);
-  ctx.lineTo(holeX - 4, holeY - 8);
+  ctx.moveTo(holeX - 4, holeY - 42);
+  ctx.lineTo(holeX - 4, holeY - 9);
   ctx.stroke();
 
   ctx.fillStyle = '#ff5e75';
   ctx.beginPath();
-  ctx.moveTo(holeX - 4, holeY - 40);
-  ctx.lineTo(holeX + 16, holeY - 31);
-  ctx.lineTo(holeX - 4, holeY - 21);
+  ctx.moveTo(holeX - 4, holeY - 42);
+  ctx.lineTo(holeX + 18, holeY - 32);
+  ctx.lineTo(holeX - 4, holeY - 22);
   ctx.fill();
+
+  ctx.beginPath();
+  ctx.arc(holeX, holeY, 20, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(255, 120, 132, 0.3)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
 }
 
 function drawParticles() {
@@ -654,6 +737,7 @@ function drawGolfer() {
   const ctx = game.ctx;
   ctx.save();
   ctx.translate(x, y);
+
   ctx.fillStyle = skin.body;
   ctx.fillRect(-12, -4, 24, 18);
 
@@ -702,6 +786,12 @@ function drawBall() {
   ctx.strokeStyle = '#d7e5ef';
   ctx.lineWidth = 1.3;
   ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(game.ball.x, game.ball.y, game.ball.r - 2, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(126,231,255,0.45)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
 }
 
 function drawAimPreview() {
@@ -719,13 +809,13 @@ function drawAimPreview() {
   ctx.moveTo(game.ball.x, game.ball.y);
   ctx.lineTo(game.ball.x + Math.cos(angle) * len, game.ball.y + Math.sin(angle) * len);
   ctx.stroke();
-  ctx.restore();
 
   const arc = document.getElementById('radialPowerArc');
   const pct = Math.min(1, drag / 220);
   const start = -120;
   const end = start + pct * 240;
   const r = 66;
+
   if (pct > 0.01) {
     const a1 = (start * Math.PI) / 180;
     const a2 = (end * Math.PI) / 180;
@@ -738,6 +828,8 @@ function drawAimPreview() {
   } else {
     arc.setAttribute('d', '');
   }
+
+  ctx.restore();
 }
 
 function drawCelebration() {
@@ -767,7 +859,10 @@ function init() {
   buildLeaderboard();
   bindEvents();
   updateHUD();
-  openTutorial();
+  // Do not auto-open tutorial every time if player has trained before
+  if ((game.state.training.powerXP || 0) + (game.state.training.accXP || 0) < 6) {
+    openTutorial();
+  }
   audioManager.setMuted(game.state.mute);
   if (!game.state.mute) audioManager.startMusic();
   requestAnimationFrame(loop);
