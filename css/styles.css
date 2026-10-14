@@ -3,29 +3,33 @@
 }
 
 :root {
-  --bg-body: #061018;
-  --bg-deep: #030d12;
-  --panel: rgba(9, 21, 27, 0.9);
+  --bg-body: #060a13;
+  --bg-deep: #02060d;
+  --panel: rgba(12, 19, 29, 0.9);
+  --panel-alt: rgba(18, 29, 39, 0.88);
   --card: rgba(255,255,255,0.025);
-  --border: rgba(255,255,255,0.06);
+  --border: rgba(138, 180, 255, 0.22);
   --text: #ecf8ff;
-  --muted: #9bb7c5;
+  --muted: #a1b8d1;
   --cyan: #7ee7ff;
+  --cyan-strong: #56d4ff;
   --purple: #8b5cf6;
+  --purple-strong: #6d4af5;
   --green: #69efaf;
   --gold: #ffd166;
   --danger: #ff6b70;
+  --shadow: rgba(9, 13, 20, 0.72);
 }
 
 html, body {
   margin: 0;
-  height: 100%;
+  min-height: 100%;
   background:
-    radial-gradient(circle at 15% 10%, rgba(126,231,255,0.14), transparent 18%),
-    radial-gradient(circle at 80% 12%, rgba(139,92,246,0.12), transparent 20%),
-    linear-gradient(180deg, #071820 0%, var(--bg-deep) 100%);
+    radial-gradient(circle at 15% 10%, rgba(126,231,255,0.16), transparent 18%),
+    radial-gradient(circle at 80% 10%, rgba(139,92,246,0.18), transparent 23%),
+    linear-gradient(180deg, #071a2a 0%, var(--bg-deep) 60%, #020609 100%);
   color: var(--text);
-  font-family: Inter, "Segoe UI", sans-serif;
+  font-family: Inter, "Segoe UI", "Helvetica Neue", sans-serif;
 }
 
 body {
@@ -40,27 +44,38 @@ button {
   font: inherit;
 }
 
+button:focus-visible {
+  outline: 2px solid rgba(126,231,255,0.9);
+  outline-offset: 2px;
+}
+
 .app-shell {
   width: min(1400px, 100%);
   height: min(860px, 96vh);
-  border-radius: 20px;
+  border-radius: 26px;
   overflow: hidden;
-  background: linear-gradient(180deg, rgba(13, 25, 31, 0.94), rgba(7, 14, 18, 0.98));
-  border: 1px solid var(--border);
-  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.46);
+  background: linear-gradient(180deg, rgba(11, 24, 34, 0.95), rgba(8, 14, 20, 0.98));
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow:
+    0 36px 100px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255,255,255,0.08);
   display: flex;
   flex-direction: column;
+  position: relative;
 }
 
 .topbar {
-  height: 96px;
+  position: relative;
+  z-index: 2;
+  min-height: 92px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   padding: 16px 18px 14px;
-  border-bottom: 1px solid var(--border);
-  background: rgba(255,255,255,0.012);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  background: rgba(6, 10, 16, 0.7);
+  backdrop-filter: blur(8px);
 }
 
 .brand-wrap {
@@ -75,24 +90,25 @@ button {
   border-radius: 14px;
   display: grid;
   place-items: center;
-  color: #08232a;
+  color: #061922;
   font-size: 22px;
   font-weight: 900;
   background: linear-gradient(135deg, var(--cyan), var(--purple));
-  box-shadow: 0 12px 30px rgba(126,231,255,0.18);
+  box-shadow: 0 10px 24px rgba(110, 189, 255, 0.36);
 }
 
 .brand-title {
-  font-size: 1.12rem;
+  font-size: 1.14rem;
   font-weight: 800;
   letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .brand-subtitle {
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   color: var(--muted);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.12em;
 }
 
 .topbar-stats {
@@ -103,15 +119,16 @@ button {
 }
 
 .stat-pill {
-  min-width: 94px;
-  padding: 8px 10px;
-  border-radius: 12px;
+  min-width: 96px;
+  padding: 8px 10px 7px;
+  border-radius: 14px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: rgba(255,255,255,0.02);
-  border: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015));
+  border: 1px solid rgba(255,255,255,0.07);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
 }
 
 .stat-label {
@@ -130,11 +147,17 @@ button {
   width: 42px;
   height: 42px;
   border-radius: 12px;
-  border: 1px solid var(--border);
+  border: 1px solid rgba(255,255,255,0.08);
   background: rgba(255,255,255,0.02);
   color: var(--text);
   cursor: pointer;
   font-size: 1.2rem;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.mute-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 18px rgba(126,231,255,0.12);
 }
 
 .game-layout {
@@ -147,18 +170,43 @@ button {
 
 .course-panel {
   position: relative;
-  border-radius: 18px;
+  border-radius: 22px;
   overflow: hidden;
-  border: 1px solid var(--border);
-  background: linear-gradient(180deg, #0b1d2b 0%, #061216 100%);
+  background: linear-gradient(180deg, rgba(28, 49, 61, 0.9), rgba(8, 23, 28, 0.9));
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+}
+
+.course-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 10% 20%, rgba(126,231,255,0.12), transparent 22%),
+    radial-gradient(circle at 80% 14%, rgba(139,92,246,0.12), transparent 25%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+#bgStars,
+#gameCanvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+#bgStars {
+  z-index: 0;
+  pointer-events: none;
 }
 
 #gameCanvas {
   display: block;
-  width: 100%;
-  height: 100%;
+  z-index: 1;
   background: linear-gradient(180deg, #7bc3ff 0%, #5cb4d8 28%, #2a7d59 70%, #184930 100%);
   cursor: crosshair;
+  border-radius: 22px;
 }
 
 .hud-overlay {
@@ -168,6 +216,7 @@ button {
   justify-content: space-between;
   align-items: flex-start;
   pointer-events: none;
+  z-index: 3;
 }
 
 .left-group, .right-group {
@@ -177,14 +226,15 @@ button {
 }
 
 .info-tag {
-  background: rgba(7, 15, 20, 0.48);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 8px 10px;
+  background: rgba(7, 15, 20, 0.38);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  padding: 9px 12px;
   font-size: 0.72rem;
   color: var(--muted);
   letter-spacing: 0.08em;
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(6px);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
 }
 
 .info-tag span {
@@ -203,11 +253,13 @@ button {
   align-items: center;
   justify-content: center;
   gap: 18px;
-  background: rgba(5, 13, 18, 0.38);
-  backdrop-filter: blur(6px);
-  border: 1px solid var(--border);
+  background: rgba(6, 12, 18, 0.52);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.08);
   border-radius: 18px;
   padding: 12px 14px;
+  box-shadow: 0 16px 30px rgba(0,0,0,0.18);
+  z-index: 3;
 }
 
 .radial-panel {
@@ -226,13 +278,13 @@ button {
 
 .radial-ring-base {
   fill: none;
-  stroke: rgba(255,255,255,0.12);
+  stroke: rgba(255,255,255,0.14);
   stroke-width: 3;
 }
 
 .radial-ring-inner {
   fill: none;
-  stroke: rgba(255,255,255,0.04);
+  stroke: rgba(255,255,255,0.06);
   stroke-width: 1;
 }
 
@@ -246,15 +298,17 @@ button {
 
 .shoot-btn {
   position: absolute;
-  width: 86px;
-  height: 86px;
+  width: 88px;
+  height: 88px;
   border: none;
   border-radius: 999px;
   background: linear-gradient(135deg, var(--cyan), var(--purple));
   color: #0b1f25;
   font-weight: 900;
   font-size: 0.9rem;
-  box-shadow: 0 18px 26px rgba(98,76,255,0.22);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  box-shadow: 0 18px 28px rgba(98,76,255,0.3);
   cursor: pointer;
 }
 
@@ -262,7 +316,7 @@ button {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  min-width: 140px;
+  min-width: 150px;
 }
 
 .shot-line {
@@ -271,12 +325,14 @@ button {
   gap: 8px;
   color: var(--muted);
   border-radius: 10px;
-  border: 1px solid var(--border);
-  background: rgba(255,255,255,0.015);
-  padding: 8px 10px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.02);
+  padding: 9px 10px;
 }
 
-.shot-line strong { color: var(--text); }
+.shot-line strong {
+  color: var(--text);
+}
 
 .sidebar {
   display: flex;
@@ -286,16 +342,16 @@ button {
 
 .panel {
   background: linear-gradient(180deg, rgba(15, 27, 32, 0.9), rgba(8,15,18,0.9));
-  border: 1px solid var(--border);
-  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 18px;
   padding: 12px;
-  box-shadow: 0 18px 30px rgba(0,0,0,0.25);
+  box-shadow: 0 18px 30px rgba(0,0,0,0.18);
 }
 
 .panel-header {
   color: var(--muted);
   font-size: 0.7rem;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   margin-bottom: 12px;
@@ -309,10 +365,10 @@ button {
 
 .skin-item {
   width: 100%;
-  height: 72px;
+  height: 74px;
   border-radius: 14px;
   border: 1px solid transparent;
-  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.005));
+  background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
   display: grid;
   place-items: center;
   cursor: pointer;
@@ -324,8 +380,8 @@ button {
 }
 
 .skin-item.selected {
-  border-color: rgba(126,231,255,0.5);
-  box-shadow: 0 10px 26px rgba(126,231,255,0.1);
+  border-color: rgba(126,231,255,0.6);
+  box-shadow: 0 10px 26px rgba(126,231,255,0.12);
 }
 
 .progress-block {
@@ -348,7 +404,7 @@ button {
   border-radius: 999px;
   overflow: hidden;
   background: rgba(255,255,255,0.04);
-  border: 1px solid var(--border);
+  border: 1px solid rgba(255,255,255,0.07);
 }
 
 .meter i {
@@ -370,24 +426,27 @@ button {
   border: none;
   border-radius: 10px;
   padding: 10px 12px;
-  font-weight: 700;
+  font-weight: 800;
   cursor: pointer;
-  transition: transform 0.16s ease, opacity 0.16s ease;
+  transition: transform 0.16s ease, opacity 0.16s ease, box-shadow 0.16s ease;
 }
 
-.action-btn:hover { transform: translateY(-1px); }
+.action-btn:hover {
+  transform: translateY(-1px);
+}
 
 .action-btn.primary {
   flex: 1;
   background: linear-gradient(135deg, var(--cyan), var(--purple));
-  color: #0a1e25;
+  color: #091b22;
+  box-shadow: 0 12px 18px rgba(106, 129, 255, 0.2);
 }
 
 .action-btn.ghost {
   flex: 1;
   background: rgba(255,255,255,0.02);
   color: var(--text);
-  border: 1px solid var(--border);
+  border: 1px solid rgba(255,255,255,0.08);
 }
 
 .shop-list {
@@ -403,7 +462,7 @@ button {
   gap: 8px;
   padding: 9px 10px;
   border-radius: 12px;
-  border: 1px solid var(--border);
+  border: 1px solid rgba(255,255,255,0.08);
   background: rgba(255,255,255,0.02);
 }
 
@@ -412,7 +471,7 @@ button {
 }
 
 .shop-name {
-  font-weight: 700;
+  font-weight: 800;
 }
 
 .shop-desc {
@@ -422,12 +481,13 @@ button {
 
 .shop-buy {
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   background: rgba(126,231,255,0.12);
   color: var(--text);
-  font-weight: 700;
+  font-weight: 800;
   padding: 7px 9px;
   cursor: pointer;
+  border: 1px solid rgba(126,231,255,0.18);
 }
 
 .shop-buy:disabled {
@@ -466,7 +526,7 @@ button {
   width: min(560px, calc(100vw - 32px));
   border-radius: 18px;
   background: linear-gradient(180deg, rgba(7,17,21,1), rgba(8,14,18,1));
-  border: 1px solid var(--border);
+  border: 1px solid rgba(255,255,255,0.08);
   box-shadow: 0 28px 60px rgba(0,0,0,0.45);
   padding: 16px;
 }
@@ -491,7 +551,7 @@ button {
 .close-btn {
   width: 34px;
   height: 34px;
-  border: 1px solid var(--border);
+  border: 1px solid rgba(255,255,255,0.08);
   background: rgba(255,255,255,0.02);
   border-radius: 8px;
   cursor: pointer;
@@ -512,7 +572,7 @@ button {
   padding: 10px 12px;
   border-radius: 12px;
   background: rgba(255,255,255,0.015);
-  border: 1px solid var(--border);
+  border: 1px solid rgba(255,255,255,0.08);
   color: var(--muted);
 }
 
@@ -534,7 +594,7 @@ button {
 
 .training-card {
   background: rgba(255,255,255,0.015);
-  border: 1px solid var(--border);
+  border: 1px solid rgba(255,255,255,0.08);
   border-radius: 14px;
   padding: 12px;
 }
@@ -559,7 +619,7 @@ button {
   height: 90px;
   display: block;
   border-radius: 10px;
-  border: 1px solid var(--border);
+  border: 1px solid rgba(255,255,255,0.08);
   background: #020e13;
   margin-bottom: 8px;
 }
