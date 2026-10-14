@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Perfect Orbit Golf</title>
+    <meta name="description" content="A polished golf trainer with upgrades, leaderboard, audio, and local progression." />
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand-wrap">
+          <div class="brand-mark">⛳</div>
+          <div>
+            <div class="brand-title">Perfect Orbit Golf</div>
+            <div class="brand-subtitle">Train harder. Hit farther. Aim cleaner.</div>
+          </div>
+        </div>
+
+        <div class="topbar-stats">
+          <div class="stat-pill">
+            <span class="stat-label">Power</span>
+            <span id="statPower" class="stat-value">1</span>
+          </div>
+          <div class="stat-pill">
+            <span class="stat-label">Accuracy</span>
+            <span id="statAcc" class="stat-value">1</span>
+          </div>
+          <div class="stat-pill">
+            <span class="stat-label">Coins</span>
+            <span id="statCoins" class="stat-value">0</span>
+          </div>
+          <button id="muteBtn" class="mute-btn" aria-label="Toggle sound">🔊</button>
+        </div>
+      </header>
+
+      <main class="game-layout">
+        <section class="course-panel">
+          <canvas id="gameCanvas" width="1200" height="760"></canvas>
+
+          <div class="hud-overlay">
+            <div class="left-group">
+              <div class="info-tag">Hole <span id="hudHole">1</span></div>
+              <div class="info-tag">Par <span id="hudPar">3</span></div>
+            </div>
+
+            <div class="right-group">
+              <div class="info-tag">Distance <span id="hudDistance">300m</span></div>
+              <div class="info-tag">Wind <span id="hudWind">0</span></div>
+            </div>
+          </div>
+
+          <div class="radial-strip">
+            <div class="radial-panel">
+              <svg class="radial-svg" viewBox="0 0 180 180" aria-hidden="true">
+                <defs>
+                  <linearGradient id="radialGradient" x1="0" x2="1">
+                    <stop offset="0%" stop-color="#7ee7ff" />
+                    <stop offset="100%" stop-color="#8b5cf6" />
+                  </linearGradient>
+                </defs>
+                <circle cx="90" cy="90" r="66" class="radial-ring-base"></circle>
+                <circle cx="90" cy="90" r="50" class="radial-ring-inner"></circle>
+                <path id="radialPowerArc" d="" class="radial-power-arc"></path>
+              </svg>
+              <button id="shootBtn" class="shoot-btn">Shoot</button>
+            </div>
+            <div class="shot-summary">
+              <div class="shot-line"><span>Power</span><strong id="shotPowerValue">0</strong></div>
+              <div class="shot-line"><span>Accuracy</span><strong id="shotAccValue">0</strong></div>
+            </div>
+          </div>
+        </section>
+
+        <aside class="sidebar">
+          <section class="panel">
+            <div class="panel-header">Golfer Skins</div>
+            <div id="skinList" class="skin-list"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header">Training</div>
+            <div class="progress-block">
+              <div class="progress-meta">
+                <span>Power</span>
+                <strong id="powerMeterText">0%</strong>
+              </div>
+              <div class="meter"><i id="powerMeter"></i></div>
+            </div>
+            <div class="progress-block">
+              <div class="progress-meta">
+                <span>Accuracy</span>
+                <strong id="accMeterText">0%</strong>
+              </div>
+              <div class="meter"><i id="accMeter"></i></div>
+            </div>
+            <div class="panel-actions">
+              <button id="tutorialBtn" class="action-btn ghost">Tutorial</button>
+              <button id="trainBtn" class="action-btn primary">Train</button>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header">Upgrades</div>
+            <div id="shopList" class="shop-list"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header">Leaderboard</div>
+            <ol id="leaderboardList" class="leaderboard-list"></ol>
+          </section>
+        </aside>
+      </main>
+    </div>
+
+    <div id="tutorialModal" class="modal hidden" aria-hidden="true">
+      <div class="modal-box">
+        <div class="modal-header">
+          <h2>Tutorial</h2>
+          <button class="close-btn" data-close="tutorialModal">×</button>
+        </div>
+        <div class="tutorial-steps">
+          <div class="step">
+            <strong>1. Drag to aim</strong>
+            <span>Click and drag from the ball to set direction and power.</span>
+          </div>
+          <div class="step">
+            <strong>2. Train</strong>
+            <span>Use the training lab to improve your power and accuracy.</span>
+          </div>
+          <div class="step">
+            <strong>3. Buy upgrades</strong>
+            <span>Spend coins on stronger clubs and better control.</span>
+          </div>
+          <div class="step">
+            <strong>4. Make the hole</strong>
+            <span>Finish the course, earn coins, and climb the leaderboard.</span>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button data-close="tutorialModal" class="action-btn primary">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="trainModal" class="modal hidden" aria-hidden="true">
+      <div class="modal-box wide">
+        <div class="modal-header">
+          <h2>Training Lab</h2>
+          <button class="close-btn" data-close="trainModal">×</button>
+        </div>
+
+        <div class="training-grid">
+          <div class="training-card">
+            <h3>Power Drill</h3>
+            <p>Tap the button as fast as you can for 3 seconds.</p>
+            <button id="powerDrillBtn" class="action-btn primary">Start Power Drill</button>
+            <div class="mini-stat">Taps: <strong id="powerDrillCount">0</strong></div>
+          </div>
+
+          <div class="training-card">
+            <h3>Accuracy Drill</h3>
+            <p>Click the moving marker as close to center as possible.</p>
+            <canvas id="accuracyCanvas" width="320" height="90"></canvas>
+            <button id="accuracyDrillBtn" class="action-btn ghost">Start Accuracy Drill</button>
+            <div class="mini-stat">Result: <strong id="accuracyDrillResult">—</strong></div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button data-close="trainModal" class="action-btn primary">Done</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="js/audio.js"></script>
+    <script src="js/game.js"></script>
+  </body>
+</html>
